@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: omniroute-backend
+    ports:
+      - "5001:5001"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/omni_route
+      - AI_PROVIDER=openai
+      - AI_BASE_URL=https://api.openai.com/v1
+      - AI_API_KEY=${AI_API_KEY}
+      - AI_MODEL=${AI_MODEL:-gpt-4o}
+    volumes:
+      - ./backend:/app/backend
+      - /app/backend/__pycache__
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - omniroute-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: omniroute-frontend
+    ports:
+      - "7000:7000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:5001
+    volumes:
+      - ./frontend:/app/frontend
+      - /app/frontend/node_modules
+      - /app/frontend/.next
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - omniroute-network
+
+  db:
+    image: postgres:16-alpine
+    container_name: omniroute-db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=omni_route
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - omniroute-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  omniroute-network:
+    driver: bridge
