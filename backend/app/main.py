@@ -1,13 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import os
+import asyncio
 
 from app.routes import projects, brand, ai_config
-from app.database import engine, Base
+from app.database import engine, Base, init_db
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
-
+# Create FastAPI app
 app = FastAPI(
     title="OmniRoute Design System API",
     description="Open source branding & design system tool with AI",
@@ -27,6 +25,12 @@ app.add_middleware(
 app.include_router(projects.router, prefix="/api/v1/projects", tags=["projects"])
 app.include_router(brand.router, prefix="/api/v1/brand", tags=["brand"])
 app.include_router(ai_config.router, prefix="/api/v1/ai-config", tags=["ai-config"])
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database on startup"""
+    await init_db()
 
 
 @app.get("/")
