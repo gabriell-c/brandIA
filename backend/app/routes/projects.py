@@ -1,3 +1,6 @@
+"""
+Project Routes - CRUD for projects
+"""
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -24,7 +27,12 @@ async def list_projects(skip: int = 0, limit: int = 100, db: AsyncSession = Depe
 @router.post("/", response_model=ProjectResponse)
 async def create_project(project_data: ProjectCreate, db: AsyncSession = Depends(get_db)):
     """Create a new project"""
-    project = Project(name=project_data.name)
+    project = Project(
+        name=project_data.name,
+        description=project_data.description,
+        business_name=project_data.business_name,
+        business_segment=project_data.business_segment
+    )
     db.add(project)
     await db.commit()
     await db.refresh(project)
@@ -49,8 +57,15 @@ async def update_project(project_id: int, project_data: ProjectUpdate, db: Async
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     
-    if project_data.name:
+    if project_data.name is not None:
         project.name = project_data.name
+    if project_data.description is not None:
+        project.description = project_data.description
+    if project_data.business_name is not None:
+        project.business_name = project_data.business_name
+    if project_data.business_segment is not None:
+        project.business_segment = project_data.business_segment
+    
     await db.commit()
     await db.refresh(project)
     return project

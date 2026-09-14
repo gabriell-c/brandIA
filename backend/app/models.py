@@ -1,5 +1,5 @@
-from sqlalchemy import String, Integer, DateTime, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import String, Integer, DateTime, func, ForeignKey, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from typing import Optional
 from datetime import datetime
 from app.database import Base
@@ -10,15 +10,21 @@ class Project(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+    business_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    business_segment: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    brands: Mapped[list["Brand"]] = relationship("Brand", back_populates="project", cascade="all, delete-orphan")
 
 
 class Brand(Base):
     __tablename__ = "brands"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    project_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    project_id: Mapped[int] = mapped_column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
     business_name: Mapped[Optional[str]] = mapped_column(String(255))
     segment: Mapped[Optional[str]] = mapped_column(String(100))
     tone_of_voice: Mapped[Optional[str]] = mapped_column(String(50))
@@ -27,12 +33,31 @@ class Brand(Base):
     logo_svg: Mapped[Optional[str]] = mapped_column("logo_svg", nullable=True)  # SVG string
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
+    # Relationships
+    project: Mapped["Project"] = relationship("Project", back_populates="brands")
+    design_systems: Mapped[list["DesignSystem"]] = relationship("DesignSystem", back_populates="brand", cascade="all, delete-orphan")
+
 
 class DesignSystem(Base):
     __tablename__ = "design_systems"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    brand_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    brand_id: Mapped[int] = mapped_column(Integer, ForeignKey("brands.id", ondelete="CASCADE"), nullable=False, index=True)
     tokens: Mapped[Optional[str]] = mapped_column("tokens", nullable=True)  # JSON
     components: Mapped[Optional[str]] = mapped_column("components", nullable=True)  # JSON
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    # Relationships
+    brand: Mapped["Brand"] = relationship("Brand", back_populates="design_systems")
+
+
+class AIConfig(Base):
+    __tablename__ = "ai_configs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    provider: Mapped[str] = mapped_column(String(50), nullable=False, default="openai")
+    base_url: Mapped[str] = mapped_column(String(500), nullable=False)
+    api_key: Mapped[str] = mapped_column(Text, nullable=False)  # Encrypted
+    model: Mapped[str] = mapped_column(String(100), nullable=False, default="gpt-4o")
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())

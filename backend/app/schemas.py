@@ -1,13 +1,30 @@
-from pydantic import BaseModel, Field, HttpUrl
+"""
+OmniRoute Design System - Pydantic Schemas
+"""
+from pydantic import BaseModel, Field, HttpUrl, field_validator
 from typing import Optional, Dict, Any
 from datetime import datetime
+import re
+
+
+class ErrorResponse(BaseModel):
+    detail: str
+    type: str
+    status_code: int
 
 
 class AIConfigBase(BaseModel):
-    provider: str = "openai"
-    base_url: HttpUrl = "https://api.openai.com/v1"
-    api_key: str
-    model: str = "gpt-4o"
+    provider: str = Field("openai", pattern="^(openai|anthropic|ollama|custom)$")
+    base_url: HttpUrl = Field("https://api.openai.com/v1")
+    api_key: str = Field(..., min_length=1, max_length=500)
+    model: str = Field("gpt-4o", min_length=1, max_length=100)
+
+    @field_validator('api_key')
+    @classmethod
+    def mask_api_key(cls, v: str) -> str:
+        if len(v) > 8:
+            return v[:4] + '***' + v[-4:]
+        return '***'
 
 
 class AIConfigCreate(AIConfigBase):
@@ -21,17 +38,39 @@ class AIConfigResponse(AIConfigBase):
 class ProjectBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
 
+    @field_validator('name')
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        if not re.match(r'^[a-zA-Z0-9\s\-_.]+$', v):
+            raise ValueError('Nome deve conter apenas letras, números, espaços, hífen, underline ou ponto')
+        return v
+
 
 class ProjectCreate(ProjectBase):
-    pass
+    description: Optional[str] = Field(None, max_length=1000)
+    business_name: Optional[str] = Field(None, max_length=255)
+    business_segment: Optional[str] = Field(None, max_length=100)
 
 
 class ProjectUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
+    description: Optional[str] = Field(None, max_length=1000)
+    business_name: Optional[str] = Field(None, max_length=255)
+    business_segment: Optional[str] = Field(None, max_length=100)
+
+    @field_validator('name')
+    @classmethod
+    def validate_name(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and not re.match(r'^[a-zA-Z0-9\s\-_.]+$', v):
+            raise ValueError('Nome deve conter apenas letras, números, espaços, hífen, underline ou ponto')
+        return v
 
 
 class ProjectResponse(ProjectBase):
     id: int
+    description: Optional[str] = None
+    business_name: Optional[str] = None
+    business_segment: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -43,21 +82,21 @@ class BrandBase(BaseModel):
     business_name: Optional[str] = Field(None, max_length=255)
     segment: Optional[str] = Field(None, max_length=100)
     tone_of_voice: Optional[str] = Field(None, max_length=50)
-    palette: Optional[Dict[str, Any]] = None
-    typography: Optional[Dict[str, Any]] = None
+    palette: Optional[Dict[str, str]] = None
+    typography: Optional[Dict[str, str]] = None
     logo_svg: Optional[str] = None
 
 
 class BrandCreate(BrandBase):
-    project_id: int
+    project_id: int = Field(..., gt=0)
 
 
 class BrandUpdate(BaseModel):
     business_name: Optional[str] = Field(None, max_length=255)
     segment: Optional[str] = Field(None, max_length=100)
     tone_of_voice: Optional[str] = Field(None, max_length=50)
-    palette: Optional[Dict[str, Any]] = None
-    typography: Optional[Dict[str, Any]] = None
+    palette: Optional[Dict[str, str]] = None
+    typography: Optional[Dict[str, str]] = None
     logo_svg: Optional[str] = None
 
 
@@ -76,7 +115,7 @@ class DesignSystemBase(BaseModel):
 
 
 class DesignSystemCreate(DesignSystemBase):
-    brand_id: int
+    brand_id: int = Field(..., gt=0)
 
 
 class DesignSystemUpdate(BaseModel):
@@ -95,10 +134,10 @@ class DesignSystemResponse(DesignSystemBase):
 
 # IA Schemas
 class BrandGenerateRequest(BaseModel):
-    project_id: int
-    business_name: str
-    segment: Optional[str] = None
-    tone_of_voice: Optional[str] = None
+    project_id: int = Field(..., gt=0)
+    business_name: str = Field(..., min_length=1, max_length=255)
+    segment: Optional[str] = Field(None, max_length=100)
+    tone_of_voice: Optional[str] = Field(None, max_length=50)
 
 
 class BrandGenerateResponse(BaseModel):
@@ -119,7 +158,7 @@ class PaletteValidateResponse(BaseModel):
 
 
 class ExportTokensRequest(BaseModel):
-    design_system_id: int
+    design_system_id: int = Field(..., gt=0)
 
 
 class ExportTokensResponse(BaseModel):
