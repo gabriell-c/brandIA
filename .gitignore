@@ -6,8 +6,10 @@ __pycache__/
 .Python
 env/
 venv/
+Venv/
 ENV/
 .venv/
+venvs/
 
 # Node.js
 node_modules/
@@ -40,3 +42,16 @@ logs/
 
 # Python
 *.pyc
+*.pyo
+*.pyd
+
+# Test coverage
+.html
+.coverage
+.coverage.*
+*.coverage
+
+# Pytest
+.pytest_cache/
+.tox/
+.nox/
