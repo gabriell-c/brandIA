@@ -175,3 +175,77 @@ class RAGSearchRequest(BaseModel):
 class RAGSearchResponse(BaseModel):
     query: str
     results: list
+
+
+# Advanced Features Schemas
+class PaletteCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+    colors: Dict[str, str] = Field(..., min_length=6)
+    description: Optional[str] = Field(None, max_length=500)
+    author: Optional[str] = Field(None, max_length=100)
+    category: Optional[str] = Field("uncategorized", max_length=50)
+    tags: Optional[List[str]] = Field(default_factory=list)
+
+
+class PaletteResponse(BaseModel):
+    id: int
+    name: str
+    colors: Dict[str, str]
+    description: Optional[str] = None
+    author: Optional[str] = None
+    category: str
+    tags: List[str]
+    rating: float
+    votes: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class FontPairingCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+    heading_font: str = Field(..., min_length=1, max_length=100)
+    body_font: str = Field(..., min_length=1, max_length=100)
+    mono_font: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=500)
+    author: Optional[str] = Field(None, max_length=100)
+    style: Optional[str] = Field("modern", max_length=50)
+    tags: Optional[List[str]] = Field(default_factory=list)
+
+
+class FontPairingResponse(BaseModel):
+    id: int
+    name: str
+    heading_font: str
+    body_font: str
+    mono_font: str
+    description: Optional[str] = None
+    author: Optional[str] = None
+    style: str
+    tags: List[str]
+    rating: float
+    votes: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class TemplateResponse(BaseModel):
+    id: int
+    name: str
+    description: str
+    segment: str
+    palette: Dict[str, str]
+    typography: Dict[str, str]
+    preview_image: Optional[str] = None
+    author: str
+    is_premium: bool
+    tags: List[str]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
