@@ -165,3 +165,13 @@ class ExportTokensResponse(BaseModel):
     json: Dict[str, Any]
     css_variables: str
     tailwind_config: str
+
+
+# RAG Schemas
+class RAGSearchRequest(BaseModel):
+    query: str = Field(..., min_length=1, max_length=500)
+
+
+class RAGSearchResponse(BaseModel):
+    query: str
+    results: list
