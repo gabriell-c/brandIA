@@ -7,9 +7,12 @@ from app.services.palette_db import PaletteDatabase, get_palette_db
 from app.services.font_db import FontDatabase, get_font_db
 from app.services.templates import TemplateDatabase, get_template_db
 from app.services.template_exporter import TemplateExporter, get_template_exporter
+from app.services.marketplace import MarketplaceService, get_marketplace
+from app.services.community import CommunityService, get_community
+from app.services.versioning import VersionService, get_versioning_service
 
 __all__ = [
-    "VectorizationService", 
+    "VectorizationService",
     "get_vectorization_service",
     "TypographicLogoService",
     "get_typographic_service",
@@ -20,5 +23,11 @@ __all__ = [
     "TemplateDatabase",
     "get_template_db",
     "TemplateExporter",
-    "get_template_exporter"
+    "get_template_exporter",
+    "MarketplaceService",
+    "get_marketplace",
+    "CommunityService",
+    "get_community",
+    "VersionService",
+    "get_versioning_service"
 ]
