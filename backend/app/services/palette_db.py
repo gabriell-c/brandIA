@@ -10,6 +10,34 @@ from sqlalchemy.ext.asyncio import AsyncSession
 logger = logging.getLogger(__name__)
 
 
+class Comment:
+    """Represents a user comment on a palette."""
+
+    def __init__(
+        self,
+        id: int,
+        palette_id: int,
+        author: str,
+        content: str,
+        created_at: datetime = None
+    ):
+        self.id = id
+        self.palette_id = palette_id
+        self.author = author
+        self.content = content
+        self.created_at = created_at or datetime.utcnow()
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return {
+            "id": self.id,
+            "palette_id": self.palette_id,
+            "author": self.author,
+            "content": self.content,
+            "created_at": self.created_at.isoformat()
+        }
+
+
 class Palette:
     """Represents a community palette."""
     
@@ -60,6 +88,19 @@ class Palette:
         self.votes += 1
         self.rating = (self.rating * (self.votes - 1) + score) / self.votes
         self.updated_at = datetime.utcnow()
+
+    def add_comment(self, comment: Comment):
+        """Add a comment to the palette."""
+        if not hasattr(self, 'comments'):
+            self.comments = []
+        self.comments.append(comment)
+        self.updated_at = datetime.utcnow()
+
+    def get_comments(self) -> List[Comment]:
+        """Get all comments for this palette."""
+        if not hasattr(self, 'comments'):
+            self.comments = []
+        return sorted(self.comments, key=lambda c: c.created_at, reverse=True)
 
 
 class PaletteDatabase:
@@ -208,6 +249,33 @@ class PaletteDatabase:
         for palette in self.palettes.values():
             all_tags.update(palette.tags)
         return sorted(list(all_tags))
+
+    def create_comment(
+        self,
+        palette_id: int,
+        author: str,
+        content: str
+    ) -> Optional[Comment]:
+        """Create a new comment on a palette."""
+        palette = self.palettes.get(palette_id)
+        if not palette:
+            return None
+
+        comment = Comment(
+            id=len(palette.get_comments()) + 1,
+            palette_id=palette_id,
+            author=author,
+            content=content
+        )
+        palette.add_comment(comment)
+        return comment
+
+    def get_comments(self, palette_id: int) -> List[Comment]:
+        """Get all comments for a palette."""
+        palette = self.palettes.get(palette_id)
+        if not palette:
+            return []
+        return palette.get_comments()
 
 
 # Singleton instance

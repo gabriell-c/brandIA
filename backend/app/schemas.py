@@ -204,6 +204,23 @@ class PaletteResponse(BaseModel):
         from_attributes = True
 
 
+class CommentCreate(BaseModel):
+    palette_id: int = Field(..., gt=0)
+    author: str = Field(..., min_length=1, max_length=100)
+    content: str = Field(..., min_length=1, max_length=1000)
+
+
+class CommentResponse(BaseModel):
+    id: int
+    palette_id: int
+    author: str
+    content: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class FontPairingCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     heading_font: str = Field(..., min_length=1, max_length=100)

@@ -12,7 +12,8 @@ from app.database import get_db
 from app.schemas import (
     PaletteCreate, PaletteResponse,
     FontPairingCreate, FontPairingResponse,
-    TemplateResponse
+    TemplateResponse,
+    CommentCreate, CommentResponse
 )
 from app.services.vectorization import get_vectorization_service
 from app.services.typographic_logo import get_typographic_service
@@ -121,6 +122,33 @@ async def vote_palette(palette_id: int, score: int = 5):
         raise HTTPException(status_code=404, detail="Palette not found")
     
     return palette.to_dict()
+
+
+@router.post("/palettes/{palette_id}/comments", response_model=CommentResponse)
+async def create_palette_comment(palette_id: int, request: CommentCreate):
+    """Add a comment to a palette."""
+    if request.palette_id != palette_id:
+        raise HTTPException(status_code=400, detail="Palette ID mismatch")
+    
+    palette_db = get_palette_db()
+    comment = palette_db.create_comment(
+        palette_id=palette_id,
+        author=request.author,
+        content=request.content
+    )
+    
+    if not comment:
+        raise HTTPException(status_code=404, detail="Palette not found")
+    
+    return comment
+
+
+@router.get("/palettes/{palette_id}/comments", response_model=List[CommentResponse])
+async def get_palette_comments(palette_id: int):
+    """Get all comments for a palette."""
+    palette_db = get_palette_db()
+    comments = palette_db.get_comments(palette_id)
+    return [c.to_dict() for c in comments]
 
 
 # Font endpoints

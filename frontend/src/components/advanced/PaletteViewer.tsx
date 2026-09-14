@@ -2,6 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { client } from '@/lib/api-client';
 
+interface Comment {
+  id: number;
+  palette_id: number;
+  author: string;
+  content: string;
+  created_at: string;
+}
+
 interface Palette {
   id: number;
   name: string;
@@ -10,8 +18,9 @@ interface Palette {
   author: string;
   category: string;
   tags: string[];
-  rating: float;
+  rating: number;
   votes: number;
+  comments?: Comment[];
 }
 
 interface PaletteViewerProps {
@@ -24,6 +33,11 @@ const PaletteViewer: React.FC<PaletteViewerProps> = ({ className }) => {
   const [filter, setFilter] = useState<string>('');
   const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Comment form state
+  const [commentAuthor, setCommentAuthor] = useState('');
+  const [commentContent, setCommentContent] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     fetchPalettes();
@@ -45,17 +59,60 @@ const PaletteViewer: React.FC<PaletteViewerProps> = ({ className }) => {
     }
   };
 
+  const fetchComments = async (paletteId: number) => {
+    try {
+      const comments = await client.get(`/advanced/palettes/${paletteId}/comments`);
+      return comments;
+    } catch (error) {
+      console.error('Failed to fetch comments:', error);
+      return [];
+    }
+  };
+
   const votePalette = async (paletteId: number, score: number) => {
     try {
       await client.post(`/advanced/palettes/${paletteId}/vote?score=${score}`);
       fetchPalettes();
+      // Refresh selected palette if needed
+      if (selected?.id === paletteId) {
+        setSelected({ ...selected, votes: selected.votes + 1, rating: ((selected.rating * selected.votes) + score) / (selected.votes + 1) });
+      }
     } catch (error) {
       console.error('Failed to vote:', error);
     }
   };
 
-  const handleSelect = (palette: Palette) => {
+  const handleSubmitComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selected || !commentAuthor.trim() || !commentContent.trim()) return;
+
+    setIsSubmitting(true);
+    try {
+      const newComment = await client.post('/advanced/palettes/comments', {
+        palette_id: selected.id,
+        author: commentAuthor,
+        content: commentContent
+      });
+      
+      // Add comment to selected palette
+      const updatedComments = [...(selected.comments || []), newComment];
+      setSelected({ ...selected, comments: updatedComments });
+      
+      // Reset form
+      setCommentAuthor('');
+      setCommentContent('');
+    } catch (error) {
+      console.error('Failed to submit comment:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSelect = async (palette: Palette) => {
     setSelected(palette);
+    // Fetch comments for this palette
+    const comments = await fetchComments(palette.id);
+    setSelected({ ...palette, comments });
   };
 
   return (
@@ -156,7 +213,7 @@ const PaletteViewer: React.FC<PaletteViewerProps> = ({ className }) => {
                 ))}
               </div>
 
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
                   <span className="text-sm text-gray-500">By {selected.author}</span>
                   <span className="text-sm">⭐ {selected.rating.toFixed(1)}</span>
@@ -176,6 +233,65 @@ const PaletteViewer: React.FC<PaletteViewerProps> = ({ className }) => {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Comments Section */}
+              <div className="border-t pt-6">
+                <h4 className="text-lg font-semibold mb-4">
+                  Comments ({selected.comments?.length || 0})
+                </h4>
+                
+                {/* Comment List */}
+                {selected.comments && selected.comments.length > 0 ? (
+                  <div className="space-y-4 mb-6">
+                    {selected.comments.map((comment) => (
+                      <div key={comment.id} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-medium text-sm">{comment.author}</span>
+                          <span className="text-xs text-gray-500">
+                            {new Date(comment.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <p className="text-gray-700 dark:text-gray-300">{comment.content}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 mb-4">No comments yet. Be the first to comment!</p>
+                )}
+
+                {/* Comment Form */}
+                <form onSubmit={handleSubmitComment} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Your Name</label>
+                    <input
+                      type="text"
+                      value={commentAuthor}
+                      onChange={(e) => setCommentAuthor(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-700"
+                      placeholder="Enter your name"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Comment</label>
+                    <textarea
+                      value={commentContent}
+                      onChange={(e) => setCommentContent(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-700"
+                      placeholder="Share your thoughts about this palette..."
+                      rows={3}
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !commentAuthor.trim() || !commentContent.trim()}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  >
+                    {isSubmitting ? 'Posting...' : 'Post Comment'}
+                  </button>
+                </form>
               </div>
             </div>
           )}
