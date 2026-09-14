@@ -1,6 +1,6 @@
 # Arquitetura do Projeto — Design System com IA
 
-> Documento vivo. Última atualização: 11/09/2026
+> Documento vivo. Última atualização: 14/09/2026
 
 ---
 
@@ -24,7 +24,7 @@ Um sistema **open source**, que roda **localmente** na máquina do usuário, ond
 2. **Determinístico sempre que possível, IA só quando necessário.** Tudo que pode ser calculado com regra/matemática não deve depender de IA (mais rápido, mais barato, mais confiável).
 3. **Transparência absoluta.** Sempre explicar o "porquê" por trás de cada escolha, usando indicadores visuais tipo farol (verde/amarelo/vermelho) em vez de números crus.
 4. **Open source.** Código acessível, instalado localmente, sem dependência de servidores externos (exceto a API de IA que o usuário configura).
-5. **BYOK (Bring Your Own Key).** O usuário usa sua própria chave de API — não há custo de IA para o projeto nemlock-in de provedor.
+5. **BYOK (Bring Your Own Key).** O usuário usa sua própria chave de API — não há custo de IA para o projeto nem lock-in de provedor.
 
 ### 1.5 Stack Técnica
 - **Frontend:** Next.js 14 + TypeScript + Tailwind CSS
@@ -82,6 +82,19 @@ omni-route-design/
 │   ├── especificacao-branding-design-system.md # Spec completa
 │   ├── prompt-saas-system-design-ia.md         # Prompt para IA
 │   └── Sem título*.txt            # Anotações e ideias
+│
+├── prompt/                      # Prompts organizados por categoria
+│   ├── branding/
+│   ├── palette/
+│   ├── typography/
+│   ├── ui/
+│   └── ux/
+│
+├── scripts/                     # Scripts de automação
+│   ├── setup.ps1                # Windows
+│   ├── setup.sh                 # Linux/Mac
+│   ├── backup.py
+│   └── restore.py
 │
 ├── .env.example                 # Variáveis de ambiente
 ├── docker-compose.yml           # Opcional (pra quem quer container)
@@ -257,8 +270,8 @@ Cada agente tem um **system prompt** específico e responde em **JSON estruturad
     }
   ],
   "accessibility": {
-    "passes_wca_ag": true,
-    "passes_wcag_aa": true
+    "passes_wcag_aa": true,
+    "passes_wcag_aaa": true
   }
 }
 ```
@@ -270,95 +283,370 @@ Cada agente tem um **system prompt** específico e responde em **JSON estruturad
 
 ---
 
-## 4. Prioridades (P0, P1, P2)
+## 4. Roadmap de Prioridades — Dividir e Conquistar
 
-### 🟢 P0 — MVP (Mínimo Viável)
-**Semanas 1-4**
+> Cada P representa um bloco de funcionalidades. Complete cada P antes de avançar para o próximo.
 
-1. **Setup do projeto**
-   - Monorepo com frontend/backend
-   - Configuração de ambiente (`.env.example`, `requirements.txt`, `package.json`)
-   - Docker Compose opcional
+---
 
-2. **Backend básico**
-   - CRUD de projetos (SQLite)
-   - Endpoints de IA (OpenAI compatible)
-   - Validação de input
+### 🟢 P1 — Fundações do Projeto
+**Horas estimadas:** ~80h | **Dependências:** Nenhuma
 
-3. **Frontend básico**
-   - Página inicial
-   - Formulário de branding (nome, segmento, tom)
-   - Exibição de resultados (paleta, tipografia)
+1. **Setup do monorepo**
+   - Estrutura de pastas (frontend/backend/docs/prompt/scripts)
+   - `.gitignore` configurado
+   - README inicial com visão geral
+   - LICENSE (MIT)
 
-4. **Integração IA**
-   - Configuração BYOK
-   - Agente de branding (system prompt + JSON output)
-   - Validação de contraste (WCAG)
+2. **Configuração de ambiente**
+   - `.env.example` documentado (todas as variáveis)
+   - `requirements.txt` com versões fixas
+   - `package.json` com scripts (dev, build, lint, test)
+   - `tsconfig.json` com strict mode
 
-5. **Exportação básica**
-   - JSON de tokens
-   - CSS Variables
+3. **Docker Compose (opcional)**
+   - `docker-compose.yml` com serviços: backend, frontend
+   - `Dockerfile.frontend` + `Dockerfile.backend`
+   - Networks e volumes configurados
 
-### 🟡 P1 — Melhorias (Semanas 5-8)
+4. **CI/CD inicial**
+   - GitHub Actions: lint (ruff + eslint)
+   - GitHub Actions: test (pytest + jest)
+   - GitHub Actions: build (next build)
 
-1. **Design System Viewer**
-   - Visualização interativa dos tokens
-   - Preview em componentes reais (botões, cards, forms)
-   - Toggle light/dark mode
+5. **Documentação inicial**
+   - README.md completo (instalação, uso, configuração)
+   - CONTRIBUTING.md (guia de contribuição)
+   - CHANGELOG.md (formato Keep a Changelog)
 
-2. **Tipografia avançada**
+---
+
+### 🟡 P2 — Backend Core
+**Horas estimadas:** ~160h | **Dependências:** P1
+
+1. **Modelos de dados**
+   - `models.py`: Project, Brand, DesignSystem (Pydantic)
+   - Tabelas SQL (SQLite)
+   - Relacionamentos (FOREIGN KEY)
+
+2. **Database**
+   - `database.py`: connection, session, migrations
+   - SQLAlchemy ORM configurado
+   - Migrations automáticas (SQLite)
+
+3. **Rotas de Projetos**
+   - `GET /api/v1/projects` — list
+   - `POST /api/v1/projects` — create
+   - `GET /api/v1/projects/{id}` — read
+   - `PUT /api/v1/projects/{id}` — update
+   - `DELETE /api/v1/projects/{id}` — delete
+
+4. **Rotas de Branding**
+   - `POST /api/v1/brand/generate` — gerar branding
+   - `POST /api/v1/brand/validate` — validar WCAG
+   - `GET /api/v1/brand/{id}` — buscar marca
+
+5. **Rotas de AI Config (BYOK)**
+   - `POST /api/v1/ai-config` — configurar API key
+   - `GET /api/v1/ai-config` — status da config
+   - `DELETE /api/v1/ai-config` — remover config
+
+6. **Validação de input**
+   - Schemas Pydantic em todos os endpoints
+   - Validação de tipos, required fields
+   - Mensagens de erro customizadas
+
+7. **Error handling padronizado**
+   - `HTTPException` com códigos 4xx/5xx
+   - Logger estruturado (JSON)
+   - Tratamento de exceptions global
+
+8. **CORS + middleware**
+   - `CORSMiddleware` configurado
+   - Permitir apenas `localhost:7000`
+   - Headers seguros
+
+---
+
+### 🔵 P3 — Frontend Core
+**Horas estimadas:** ~120h | **Dependências:** P1
+
+1. **Página inicial (landing)**
+   - Hero section com CTA
+   - Features highlights
+   - Footer com links
+
+2. **Formulário de branding**
+   - Passo 1: Informações do negócio (nome, segmento, tom de voz)
+   - Passo 2: Escolha de paleta (preview em tempo real)
+   - Passo 3: Seleção de tipografia (preview ao vivo)
+   - Validação com Zod
+
+3. **Display de resultados**
+   - Paleta de cores (hex + names)
+   - Escala tipográfica
+   - Botões de exportação
+
+4. **Componentes UI básicos**
+   - Button (primary/secondary/ghost)
+   - Input + Label + Error message
+   - Card (info, success, warning, error)
+   - Modal (genérico)
+
+5. **Validação de input**
+   - Zod schemas no client
+   - Mensagens de erro em tempo real
+   - Feedback visual (bordas, tooltips)
+
+6. **Cliente API**
+   - `lib/api.ts` com funções typed
+   - Error handling (retry, timeout)
+   - Types gerados a partir dos schemas
+
+7. **Navegação**
+   - Next.js App Router
+   - Rotas: `/`, `/brand`, `/design-system`, `/export`
+   - Link components
+
+8. **Layout base**
+   - Navbar (responsive)
+   - Footer
+   - Sidebar (opcional)
+   - Theme provider (dark/light)
+
+---
+
+### 🟣 P4 — Integração IA
+**Horas estimadas:** ~200h | **Dependências:** P2, P3
+
+1. **Cliente OpenAI compatible**
+   - `lib/ai/client.ts` (httpx no backend)
+   - Configuração BYOK (endpoint, key, model)
+   - Tipos de response (json structured)
+
+2. **Agente de branding**
+   - System prompt otimizado
+   - Output JSON: palette, typography, explanation
+   - Validação do response
+
+3. **Agente de paleta**
+   - Geração de cores (primary, secondary, accent, neutral)
+   - Cálculo de contraste (WCAG)
+   - Sugestões de ajustes
+
+4. **Agente de tipografia**
    - Seleção de fontes (Google Fonts)
-   - Escala tipográfica (módulos)
-   - Preview ao vivo
+   - Font pairing (máx 2 famílias)
+   - Escala modular (ratio 1.25)
 
-3. **Logo simples**
-   - Geração de logo tipográfica (texto + fonte)
-   - Export SVG
-   - Variações (cor, fundo)
+5. **RAG local (Hub de Regras)**
+   - `rules/color-rules.md` — regras de cor
+   - `rules/typography-rules.md` — regras de tipografia
+   - `rules/ui-rules.md` — regras de UI
+   - Busca keyword-based
 
-4. **Melhorias de UX**
-   - Indicadores visuais (farol verde/amarelo/vermelho)
-   - Tooltips explicativos
-   - Modo simples/avançado
+6. **Retry logic**
+   - Timeout de 30s por request
+   - Retry 3x com backoff exponencial
+   - Fall back para modelo padrão
 
-### 🔴 P2 — Avançado (Semanas 9-12)
+7. **Logging estruturado**
+   - Logger de requests/responses
+   - Tempo de resposta
+   - Erros da API (4xx/5xx)
+
+---
+
+### 🟠 P5 — Validação & UX
+**Horas estimadas:** ~80h | **Dependências:** P4
+
+1. **Validador WCAG**
+   - Contraste texto/fundo (4.5:1 AA, 7:1 AAA)
+   - Simulação de daltonismo (protanopia, deuteranopia, tritanopia)
+   - Feedback visual (verde/amarelo/vermelho)
+
+2. **Indicadores visuais (farol)**
+   - Ícone + cor para cada validação
+   - Tooltip explicativo
+   - Posição inline nos campos
+
+3. **Tooltips explicativos**
+   - Cada campo tem help text
+   - Explicação do "porquê"
+   - Links para documentação
+
+4. **Modo simples/avançado**
+   - Toggle no header
+   - Simples: defaults otimizados
+   - Avançado: controle total dos params
+
+5. **Feedback em tempo real**
+   - Validação após cada input
+   - Loading states (skeleton)
+   - Erros amigáveis (sem stack trace)
+
+---
+
+### 🟤 P6 — Design System Viewer
+**Horas estimadas:** ~100h | **Dependências:** P5
+
+1. **Visualização de tokens**
+   - JSON preview (tree view)
+   - CSS Variables (preview)
+   - Tailwind Config (preview)
+
+2. **Preview de componentes**
+   - Botões (todos os variants)
+   - Cards (info, success, warning, error)
+   - Forms (input, select, checkbox, radio)
+   - Navbar, Footer
+
+3. **Toggle dark/light mode**
+   - Theme provider
+   - Persistência no localStorage
+   - Transições suaves
+
+4. **Exportação de tokens**
+   - JSON (Design Tokens format)
+   - CSS Variables
+   - Tailwind Config
+   - Style Dictionary
+
+5. **Storybook**
+   - Documentação de componentes
+   - Stories para cada variant
+   - Controls para testar props
+
+---
+
+### 🔴 P7 — Features Avançadas
+**Horas estimadas:** ~160h | **Dependências:** P6
 
 1. **Vetorização PNG→SVG**
-   - Integração com `potrace` ou `vtracer`
-   - Upload de logo
+   - Integração com `potrace` (backend)
+   - Upload de logo PNG
    - Processamento e export SVG
-   - *Nota: resultado automático é "melhor esforço" para logos complexas*
+   - *Nota: resultado é "melhor esforço"*
 
-2. **Design System completo**
-   - Blocos de UI (navbar, footer, cards, forms)
-   - Preview em layout real
-   - Export como Storybook
+2. **Geração de logo tipográfica**
+   - Texto + fonte selecionada
+   - Variações (cor, fundo, tamanho)
+   - Export SVG/PNG
 
-3. **Comunidade**
-   - Banco de paletas contribuídas
-   - Banco de combinações de fontes
-   - Sistema de templates
+3. **Banco de paletas contribuídas**
+   - CRUD de paletas
+   - Rating e comentários
+   - Filtros por cor/segmento
 
-4. **Versionamento**
-   - Salvar múltiplos versões do projeto
+4. **Banco de combinações de fontes**
+   - Font pairing sugerido
+   - Preview ao vivo
+   - Rating e comentários
+
+5. **Sistema de templates**
+   - Templates prontos (blog, portfolio, e-commerce)
+   - Customização via UI
+   - Exportação completa
+
+---
+
+### ⚫ P8 — Comunidade & Ecossistema
+**Horas estimadas:** ~120h | **Dependências:** P7
+
+1. **Marketplace de templates**
+   - Listagem de templates
+   - Sistema de ratings
+   - Compra/venda (Stripe)
+
+2. **Avaliações e reviews**
+   - Sistema de notas (1-5 estrelas)
+   - Comentários
+   - Moderação
+
+3. **Compartilhamento de designs**
+   - Galeria pública
+   - Feed de designs recentes
+   - Filtros por cor/tipo
+
+4. **Sistema de versões**
+   - Salvar múltiplas versões do projeto
    - Diff entre versões
    - Rollback
 
-### ⚪ P3 — Futuro (Sem data definida)
+---
+
+### 🔘 P9 — Deploy & Infra
+**Horas estimadas:** ~60h | **Dependências:** P8
 
 1. **Versão hospedada**
-   - Web app para quem não quer rodar local
-   - Misma stack, mas deployed (Vercel + Railway/Render)
+   - Vercel (frontend)
+   - Railway/Render (backend)
+   - Banco SQLite na nuvem (opcional)
 
-2. **Monetização**
-   - Templates premium
-   - Exportação em formatos extras (Sketch, Figma, Adobe XD)
-   - Suporte enterprise
+2. **Monitoramento**
+   - Logs centralizados (Loki)
+   - Métricas (Prometheus)
+   - Alertas (Alertmanager)
 
-3. **Integrações**
-   - Plugin para Figma
-   - Plugin para VS Code
-   - Export para React/Vue components
+3. **Backup automático**
+   - Script `backup.py` (semanal)
+   - Cron job / Task Scheduler
+   - Armazenamento local + cloud (opcional)
+
+4. **Restore manual**
+   - Documentação passo a passo
+   - Script `restore.py`
+   - Validação de integridade do DB
+
+---
+
+### 🔷 P10 — Monetização
+**Horas estimadas:** ~80h | **Dependências:** P9
+
+1. **Templates premium**
+   - Templates pagos no marketplace
+   - Sistema de licenças
+   - Downloads após pagamento
+
+2. **Exportação avançada**
+   - Sketch, Figma, Adobe XD
+   - React/Vue components
+   - CSS/SCSS modules
+
+3. **Suporte enterprise**
+   - Consultoria personalizada
+   - Implementação dedicada
+   - SLA garantido
+
+4. **API paga (SaaS)**
+   - Preço por request
+   - Rate limiting
+   - Dashboard de uso
+
+---
+
+### 🔶 P11 — Integrações
+**Horas estimadas:** ~100h | **Dependências:** P10
+
+1. **Plugin para Figma**
+   - Importar tokens do projeto
+   - Criar estilos e componentes
+   - Sincronização bidirecional
+
+2. **Plugin para VS Code**
+   - Snippets de tokens
+   - Preview em tempo real
+   - Validação de WCAG
+
+3. **Export para React/Vue**
+   - Components prontos
+   - TypeScript types
+   - Storybook integrado
+
+4. **Export para CSS/SCSS**
+   - Variables CSS
+   - Tailwind config
+   - Style Dictionary
 
 ---
 
@@ -406,7 +694,7 @@ pnpm dev -- -p 7000
 - **Simulação de daltonismo:** Verificar se paleta funciona para deficiências
 
 ### 6.2 Tipografia
-- **Escala modular:**_RATIO_ 1.25 (módulo base)
+- **Escala modular:** Ratio 1.25 (módulo base)
 - **Line-height:** Mínimo 1.5 para corpo de texto
 - **Font pairing:** Máximo 2 famílias tipográficas por projeto
 
@@ -682,6 +970,6 @@ Como é local e BYOK:
 
 ---
 
-**Documento criado por:** Gabriel 
+**Documento criado por:** Gabriel (OmniRoute)  
 **Baseado em:** Anotações de design_system/docs/  
-**Versão:** 2.0
+**Versão:** 3.0
