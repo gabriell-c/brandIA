@@ -214,7 +214,7 @@ pnpm test -- frontend/src/components/advanced/
 ## Próximos Passos
 
 1. Implementar banco de dados real (substituir memória por SQLite/PostgreSQL)
-2. Adicionar sistema de comentários nas paletas/fontes
+2. Adicionar sistema de comentários nas fontes (similar ao implemented para paletas)
 3. Implementar sistema de upload de templates pela comunidade
 4. Adicionar integração com Instagram/Pinterest para inspiração
 5. Implementar sistema de favoritos (usuário pode salvar templates)
