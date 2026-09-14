@@ -1,14 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Configuração para development em porta customizada
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: 'http://localhost:5001/api/:path*',
-      },
-    ]
+  output: 'standalone',
+  experimental: {
+    clientSegmentQueueing: true,
   },
-}
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;
