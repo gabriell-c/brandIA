@@ -576,17 +576,95 @@ Como é local e BYOK:
 
 ---
 
-## 14. Próximos Passos
+## 14. Roadmap de Execução
 
-1. [ ] Criar repositório no GitHub
-2. [ ] Setup do monorepo (frontend/backend)
-3. [ ] Implementar scripts de setup (`scripts/setup.ps1`, `scripts/setup.sh`)
-4. [ ] Implementar MVP (P0)
-5. [ ] Testar com usuários reais
-6. [ ] Coletar feedback
-7. [ ] Implementar P1
-8. [ ] Documentar uso (README, CONTRIBUTING, CHANGELOG)
-9. [ ] Divulgar projeto
+> Siga a ordem das prioridades. Cada P deve estar completo antes de iniciar o próximo.
+
+### Fase 1 — Fundação (P1)
+- [ ] Setup do monorepo (frontend/backend)
+- [ ] Configurar `.env.example`, `requirements.txt`, `package.json`
+- [ ] Configurar Docker Compose (opcional)
+- [ ] Configurar CI/CD inicial (lint + test + build)
+- [ ] Criar README.md, CONTRIBUTING.md, CHANGELOG.md
+
+### Fase 2 — Backend (P2)
+- [ ] Implementar modelos de dados (Project, Brand, DesignSystem)
+- [ ] Configurar database (SQLite + SQLAlchemy)
+- [ ] Implementar rotas de Projetos (CRUD)
+- [ ] Implementar rotas de Branding
+- [ ] Implementar rotas de AI Config (BYOK)
+- [ ] Configurar validação de input (Pydantic)
+- [ ] Implementar error handling padronizado
+- [ ] Configurar CORS + middleware
+
+### Fase 3 — Frontend (P3)
+- [ ] Criar página inicial (landing)
+- [ ] Implementar formulário de branding (3 passos)
+- [ ] Criar display de resultados
+- [ ] Implementar componentes UI básicos
+- [ ] Configurar validação de input (Zod)
+- [ ] Criar cliente API (`lib/api.ts`)
+- [ ] Configurar navegação (Next.js App Router)
+- [ ] Criar layout base (navbar, footer, theme provider)
+
+### Fase 4 — IA (P4)
+- [ ] Criar cliente OpenAI compatible
+- [ ] Implementar agente de branding
+- [ ] Implementar agente de paleta
+- [ ] Implementar agente de tipografia
+- [ ] Criar RAG local (regras em `.md`)
+- [ ] Implementar retry logic
+- [ ] Configurar logging estruturado
+
+### Fase 5 — UX (P5)
+- [ ] Implementar validador WCAG
+- [ ] Criar indicadores visuais (farol)
+- [ ] Adicionar tooltips explicativos
+- [ ] Implementar modo simples/avançado
+- [ ] Adicionar feedback em tempo real
+
+### Fase 6 — Viewer (P6)
+- [ ] Criar visualização de tokens
+- [ ] Implementar preview de componentes
+- [ ] Adicionar toggle dark/light
+- [ ] Criar exportação de tokens
+- [ ] Configurar Storybook
+
+### Fase 7 — Avançado (P7)
+- [ ] Implementar vetorização PNG→SVG
+- [ ] Criar geração de logo tipográfica
+- [ ] Implementar banco de paletas contribuídas
+- [ ] Criar banco de combinações de fontes
+- [ ] Implementar sistema de templates
+
+### Fase 8 — Comunidade (P8)
+- [ ] Criar marketplace de templates
+- [ ] Implementar sistema de ratings
+- [ ] Criar compartilhamento de designs
+- [ ] Implementar sistema de versões
+
+### Fase 9 — Deploy (P9)
+- [ ] Deploy para Vercel + Railway
+- [ ] Configurar monitoramento (logs + métricas)
+- [ ] Implementar backup automático
+- [ ] Criar documentação de restore
+
+### Fase 10 — Monetização (P10)
+- [ ] Criar templates premium
+- [ ] Implementar exportação avançada
+- [ ] Configurar suporte enterprise
+- [ ] Criar API paga (SaaS)
+
+### Fase 11 — Integrações (P11)
+- [ ] Criar plugin para Figma
+- [ ] Criar plugin para VS Code
+- [ ] Implementar export para React/Vue
+- [ ] Criar export para CSS/SCSS
+
+---
+
+**Teste com usuários reais** após completar o P6 (Design System Viewer).
+**Divulgar projeto** após completar o P9 (Deploy & Infra).
 
 ---
 
@@ -604,6 +682,6 @@ Como é local e BYOK:
 
 ---
 
-**Documento criado por:** Gabriel (OmniRoute)  
+**Documento criado por:** Gabriel 
 **Baseado em:** Anotações de design_system/docs/  
 **Versão:** 2.0
