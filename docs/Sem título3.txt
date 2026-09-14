@@ -1,0 +1,49 @@
+Concordo total, e acho que essa é a decisão mais importante do projeto todo — mais importante até que a stack técnica. Vou detalhar por quê e complementar com o que eu acho que falta.
+
+## Você está certo: precisa separar "regra" de "julgamento"
+
+O erro mais comum nesse tipo de projeto é jogar tudo pra IA decidir. Mas boa parte do que você listou (contraste AAA, regras de cor, tipografia) **não é opinião, é matemática/regra fixa** — e isso muda a arquitetura:
+
+**O que deve ser código determinístico (zero IA, zero token):**
+- Cálculo de contraste (WCAG AA = 4.5:1 pra texto normal, 3:1 pra texto grande; AAA = 7:1 e 4.5:1) — dá pra calcular isso com fórmula, tem lib pronta (ex: `culori`, `chroma.js`, `wcag-contrast`) rodando 100% local.
+- Simulação de daltonismo pra validar se a paleta funciona pra quem tem deficiência de percepção de cor.
+- Regras de hierarquia tipográfica (escala de tamanhos, line-height mínimo, etc.) — fórmulas conhecidas (ex: escala modular).
+- Isso roda instantâneo, sem custo de API, sem chance de "alucinação".
+
+**O que sobra pra IA (julgamento subjetivo real):**
+- "Essa paleta transmite confiança pra uma fintech?"
+- "Essa combinação de fonte serifada + cores pastel combina com o tom que esse negócio quer passar?"
+- Esse é o tipo de coisa que só faz sentido com raciocínio, não com fórmula.
+
+Isso já resolve boa parte da sua preocupação com token: você só chama a IA pro que é realmente subjetivo, e valida tudo que é objetivo (contraste, tamanho, etc.) via código antes/depois, como um "verificador" — tipo um lint de acessibilidade e design que roda em cima do que a IA sugeriu.
+
+## Sobre o hub de regras sem gastar token à toa
+
+Em vez de meter o manual inteiro no prompt toda hora, o padrão certo aqui é **RAG** (retrieval-augmented generation) local:
+- Você quebra o seu "manual de branding" em pedaços pequenos e categorizados (regras de cor, regras de tipografia, regras de UI, lista de "nunca faça").
+- Na hora de gerar algo, você recupera só os trechos relevantes pro contexto daquela etapa (ex: na etapa de paleta, só puxa as regras de cor + psicologia das cores, não puxa nada de navbar).
+- Isso é local, rápido, sem custo de token pra busca, e só o trecho relevante entra no prompt da IA.
+
+Outra opção mais simples de começar (antes de RAG): dividir o processo em **etapas isoladas com prompts enxutos e específicos** — um prompt curto só de regras de cor pra etapa de cor, outro só de tipografia pra etapa de fonte, etc, em vez de um "system prompt" gigante genérico que carrega tudo sempre.
+
+## Pontos que acho que estão faltando (pensando no usuário leigo)
+
+**1. Explicação junto de cada decisão, não só o resultado.**
+Se a pessoa não entende nada de design, ela precisa ver o "porquê" ali do lado, tipo um tooltip: *"Essa cor foi trocada porque a original tinha contraste 2.1:1 com o fundo, abaixo do mínimo de acessibilidade (4.5:1)"*. Isso é o que constrói confiança de que não é aleatório — é literalmente o seu maior diferencial de proposta.
+
+**2. Indicador visual tipo "farol" (verde/amarelo/vermelho) em vez de números crus.**
+Leigo não sabe o que significa "contraste 4.5:1". Mas entende "✅ Passa no padrão de acessibilidade" ou "⚠️ Difícil de ler para algumas pessoas".
+
+**3. Preview visual em componentes reais, não só a paleta isolada.**
+Mostrar um botão, um card, um formulário de verdade já renderizado com a paleta/fonte escolhida — pessoa leiga não consegue "imaginar" como cores em um quadradinho vão ficar em uma tela real. Isso já é meio que consequência natural do seu plano de gerar os blocos de UI, só reforçando que isso deveria aparecer **durante** o processo de escolha, não só no final.
+
+**4. Modo simples vs modo avançado.**
+Quem não entende nada só quer escolher entre 3-4 opções prontas e confiar. Quem entende quer mexer em HSL, ajustar contraste manualmente, etc. Vale pensar em progressive disclosure desde o início da arquitetura (não é difícil, é só questão de esconder controles).
+
+**5. Exportar como design tokens, não só como "página bonita".**
+Já que é uma ferramenta pra devs/indie hackers, o output devia sair também como JSON/CSS variables/Tailwind config prontos pra colar no projeto — não só uma página estática pra olhar. Isso aumenta MUITO o valor prático da ferramenta.
+
+**6. Curadoria comunitária do "banco de regras" (já que é open source).**
+Com o tempo, deixar a comunidade contribuir com paletas testadas, fontes validadas, exemplos de "isso deu errado e por quê" — vira uma base de conhecimento viva, sem você ter que manter tudo sozinho pra sempre.
+
+Faz sentido pra você essa separação regra-fixa (código) vs julgamento (IA) como próximo passo de arquitetura? Dá pra já esboçar como seria essa estrutura de "manual de regras" em categorias antes de pensar em código.

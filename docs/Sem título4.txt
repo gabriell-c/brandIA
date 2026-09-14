@@ -1,0 +1,11 @@
+Exatamente, faz todo sentido — e é o jeito certo de fazer. Duas coisas que eu recomendaria pra quando formos fazer essa pesquisa de verdade:
+
+**1. Pesquisar por categoria separada, não tudo de uma vez.**
+Cada bloco do hub (contraste/acessibilidade, psicologia das cores, pareamento de tipografia, padrões de cada componente de UI — card, form, navbar, footer...) merece uma rodada de pesquisa própria, com fontes específicas daquele assunto. Se eu tentar pesquisar "tudo sobre design" de uma vez, o resultado sai raso. Pesquisando categoria por categoria, dá pra ir fundo em cada uma (ex: pegar direto a especificação do WCAG pra contraste, em vez de um resumo genérico de blog).
+
+**2. Já produzir no formato final que a gente definiu.**
+Já que a spec tem o formato de regra estruturada (aquele YAML com `id`, `categoria`, `regra`, `severidade`, `explicacao_simples`, `como_verificar`), quando você pedir a pesquisa eu já posso entregar direto nesse formato — não só um texto corrido, mas os arquivos `.md` já organizados por categoria (`contraste-e-acessibilidade.md`, `pareamento-de-fontes.md`, etc.), prontos pra virar o hub de conhecimento/RAG. Isso economiza um retrabalho seu de "traduzir" pesquisa solta pra estrutura depois.
+
+Uma sugestão de ordem, quando for pedir: começar pelas coisas **determinísticas** (contraste/WCAG, escala tipográfica, espaçamento) — são as mais objetivas, com fonte oficial única (W3C), rápidas de fechar com confiança. Deixar psicologia das cores e padrões de UI por último, porque aí tem mais divergência entre fontes e vale cruzar mais de uma referência antes de "bater o martelo" no que vira regra fixa do hub.
+
+Quando quiser, é só pedir — inclusive dá pra fazer isso aos poucos (uma categoria por conversa), já que cada uma tende a ficar bem extensa se for feita direito.
