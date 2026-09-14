@@ -1,281 +1,3 @@
-# Arquitetura do Projeto — Design System com IA
-
-> Documento vivo. Última atualização: 14/09/2026
-
----
-
-## 1. Visão Geral
-
-### 1.1 O que é
-Um sistema **open source**, que roda **localmente** na máquina do usuário, onde a pessoa configura a API de IA de sua preferência (OpenAI, Anthropic, Google, modelo local via Ollama, etc.) e usa a ferramenta para gerar um **branding completo + design system navegável**, sem depender de um SaaS de terceiros nem enviar dados para servidores externos.
-
-### 1.2 Problema que resolve
-- Pessoas e pequenos negócios sem verba para contratar um designer não conseguem montar uma identidade visual minimamente consistente.
-- Ferramentas existentes (Looka, Brandmark, Uizard, Brandfetch) são SaaS fechados, pagos por assinatura, sem controle sobre dados e sem abrir o "porquê" das decisões.
-- Devs/indie hackers precisam de algo que já saia em formato utilizável no código (tokens, CSS, etc.), não só uma imagem bonita.
-
-### 1.3 Para quem é
-- Pessoas leigas em design, que não sabem nada sobre cores, tipografia ou acessibilidade, mas precisam de algo pronto e confiável.
-- Devs/indie hackers que querem algo rápido, consistente, e que já saia em formato de código.
-- Pequenas agências que querem acelerar a etapa inicial de proposta de marca para clientes.
-
-### 1.4 Princípios norteadores
-1. **Nada de decisão aleatória.** Toda escolha (cor, fonte, contraste) precisa ter uma justificativa rastreável — regra técnica ou raciocínio da IA, nunca "porque sim".
-2. **Determinístico sempre que possível, IA só quando necessário.** Tudo que pode ser calculado com regra/matemática não deve depender de IA (mais rápido, mais barato, mais confiável).
-3. **Transparência absoluta.** Sempre explicar o "porquê" por trás de cada escolha, usando indicadores visuais tipo farol (verde/amarelo/vermelho) em vez de números crus.
-4. **Open source.** Código acessível, instalado localmente, sem dependência de servidores externos (exceto a API de IA que o usuário configura).
-5. **BYOK (Bring Your Own Key).** O usuário usa sua própria chave de API — não há custo de IA para o projeto nem lock-in de provedor.
-
-### 1.5 Stack Técnica
-- **Frontend:** Next.js 14 + TypeScript + Tailwind CSS
-- **Backend:** Python 3.12 + FastAPI + SQLite
-- **IA:** OpenAI-compatible API (OpenAI, Anthropic, Ollama, etc.)
-- **Arquitetura:** Monorepo com frontend e backend em pastas separadas
-
----
-
-## 2. Estrutura do Projeto
-
-```
-omni-route-design/
-├── frontend/                    # Next.js + TypeScript + Tailwind
-│   ├── app/                     # Pages (React Server Components)
-│   │   ├── page.tsx             # Página inicial
-│   │   └── globals.css          # Estilos globais
-│   ├── components/              # Componentes React
-│   │   ├── ui/                  # Componentes base (botões, inputs, cards)
-│   │   ├── design-system/       # Blocos de UI do design system
-│   │   ├── brand/               # Componentes de branding (logo, paleta, tipografia)
-│   │   └── shared/              # Componentes reutilizáveis
-│   ├── lib/                     # Utilitários
-│   │   ├── ai/                  # Cliente de IA (OpenAI compatible)
-│   │   ├── tokens/              # Gerenciamento de design tokens
-│   │   ├── validation/          # Validações (WCAG, teoria das cores, etc.)
-│   │   └── api.ts               # Clientes da API backend
-│   ├── public/                  # Assets estáticos
-│   └── next.config.js           # Configuração Next.js
-│
-├── backend/                     # FastAPI + SQLite
-│   ├── app/
-│   │   ├── main.py              # Entry point
-│   │   ├── models/              # Schemas SQLite (Pydantic)
-│   │   │   ├── project.py       # Modelo de projeto
-│   │   │   ├── brand.py         # Modelo de branding
-│   │   │   └── design-system.py # Modelo de design system
-│   │   ├── routes/              # Rotas da API
-│   │   │   ├── projects.py      # CRUD de projetos
-│   │   │   ├── brand.py         # Geração de branding
-│   │   │   ├── design-system.py # Geração de design system
-│   │   │   └── ai-config.py     # Configuração da IA
-│   │   ├── agents/              # Agentes de IA
-│   │   │   ├── brand-agent.py   # Agente de branding
-│   │   │   ├── palette-agent.py # Agente de paleta de cores
-│   │   │   └── typography-agent.py # Agente de tipografia
-│   │   └── rules/               # Hub de regras (RAG local)
-│   │       ├── color-rules.md   # Regras de cor
-│   │       ├── typography-rules.md # Regras de tipografia
-│   │       └── ui-rules.md      # Regras de UI
-│   ├── requirements.txt         # Dependências Python
-│   └── .env.example             # Variáveis de exemplo
-│
-├── docs/                        # Documentação do projeto
-│   ├── especificacao-branding-design-system.md # Spec completa
-│   ├── prompt-saas-system-design-ia.md         # Prompt para IA
-│   └── Sem título*.txt            # Anotações e ideias
-│
-├── prompt/                      # Prompts organizados por categoria
-│   ├── branding/
-│   ├── palette/
-│   ├── typography/
-│   ├── ui/
-│   └── ux/
-│
-├── scripts/                     # Scripts de automação
-│   ├── setup.ps1                # Windows
-│   ├── setup.sh                 # Linux/Mac
-│   ├── backup.py
-│   └── restore.py
-│
-├── .env.example                 # Variáveis de ambiente
-├── docker-compose.yml           # Opcional (pra quem quer container)
-└── README.md                    # Instruções de instalação
-```
-
----
-
-## 3. Arquitetura Detalhada
-
-### 3.1 Frontend (Next.js + TypeScript + Tailwind)
-
-#### 3.1.1 Por que Next.js?
-- **SSR/SSG:** Páginas rápidas, SEO-friendly (importante se quiser divulgar o projeto)
-- **App Router:** Estrutura moderna, components Server/Client bem definidos
-- **TypeScript nativo:** Tipagem forte, melhor DX
-- **Comunidade enorme:** Milhares de recursos, templates, bibliotecas
-
-#### 3.1.2 Stack do Frontend
-```
-@next/bundle-analyzer      # Análise de bundle
-@radix-ui/*                # Componentes acessíveis
-clsx                       # Classes condicionais
-framer-motion              # Animações
-lucide-react               # Ícones
-tailwindcss                # Estilização utility-first
-typescript                 # Tipagem estática
-zod                        # Validação de schemas
-```
-
-#### 3.1.3 Componentes Principais
-- **BrandGenerator:** Formulário guiado para gerar branding
-  - Passo 1: Informações do negócio (nome, segmento, tom de voz)
-  - Passo 2: Escolha de paleta (com validação WCAG em tempo real)
-  - Passo 3: Seleção de tipografia (com preview ao vivo)
-  - Passo 4: Geração de logo (SVG ou PNG)
-  - Passo 5: Exportação de design tokens
-
-- **DesignSystemViewer:** Visualização do design system
-  - Paleta de cores com variáveis CSS
-  - Escala tipográfica
-  - Componentes de UI (botões, cards, forms, navbar)
-  - Preview em modo light/dark
-
-- **TokenExporter:** Exportação de tokens
-  - JSON (Design Tokens format)
-  - CSS Variables
-  - Tailwind Config
-  - Style Dictionary
-
-### 3.2 Backend (FastAPI + SQLite)
-
-#### 3.2.1 Por que FastAPI?
-- **Async:** Alto desempenho para chamadas de IA
-- **Tipagem forte:** Pydantic models para validação automática
-- **Docs automáticos:** Swagger/ReDoc inclusos
-- **Python 3.12:** Performance e recursos modernos
-
-#### 3.2.2 Stack do Backend
-```
-fastapi                    # Framework web
-uvicorn                    # ASGI server
-sqlalchemy                 # ORM (opcional, SQLite direto também funciona)
-pydantic                   # Validação de dados
-openai                     # Cliente OpenAI
-python-dotenv              # Variáveis de ambiente
-httpx                      # Client HTTP async
-```
-
-#### 3.2.3 Banco de Dados (SQLite)
-- **Arquivo local:** `.omni-route-design.db` na pasta do projeto
-- **Schema:**
-  ```sql
-  CREATE TABLE projects (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE brands (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    project_id INTEGER REFERENCES projects(id),
-    business_name TEXT,
-    segment TEXT,
-    tone_of_voice TEXT,
-    palette JSON,
-    typography JSON,
-    logo_svg TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE design_system (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    brand_id INTEGER REFERENCES brands(id),
-    tokens JSON,
-    components JSON,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  );
-  ```
-
-#### 3.2.4 API Endpoints
-```
-POST   /api/v1/auth/config        # Configurar IA (BYOK)
-GET    /api/v1/projects           # Listar projetos
-POST   /api/v1/projects           # Criar projeto
-GET    /api/v1/projects/{id}      # Buscar projeto
-PUT    /api/v1/projects/{id}      # Atualizar projeto
-DELETE /api/v1/projects/{id}      # Deletar projeto
-
-POST   /api/v1/brand/generate     # Gerar branding
-POST   /api/v1/brand/validate     # Validar branding (WCAG, etc.)
-
-POST   /api/v1/design-system/generate  # Gerar design system
-POST   /api/v1/tokens/export      # Exportar tokens (JSON, CSS, Tailwind)
-```
-
-### 3.3 IA (OpenAI-Compatible API)
-
-#### 3.3.1 Configuração BYOK
-O usuário configura no `.env`:
-```env
-# AI Provider (OpenAI, Anthropic, Ollama, etc.)
-AI_PROVIDER=openai
-AI_BASE_URL=https://api.openai.com/v1
-AI_API_KEY=sk-...
-AI_MODEL=gpt-4o
-
-# Ou para Ollama local
-# AI_PROVIDER=openai
-# AI_BASE_URL=http://localhost:11434/v1
-# AI_API_KEY=ollama
-# AI_MODEL=llama3.2
-```
-
-#### 3.3.2 Agentes de IA
-Cada agente tem um **system prompt** específico e responde em **JSON estruturado**:
-
-**Agente de Branding:**
-```json
-{
-  "brand_name": "Nome da marca",
-  "tagline": "Tagline sugestão",
-  "palette": {
-    "primary": "#3B82F6",
-    "secondary": "#10B981",
-    "accent": "#F59E0B",
-    "neutral": "#6B7280",
-    "light": "#F9FAFB",
-    "dark": "#111827"
-  },
-  "typography": {
-    "heading": "Inter",
-    "body": "Inter",
-    "mono": "JetBrains Mono"
-  },
-  "explanation": "Por que essas escolhas?"
-}
-```
-
-**Agente de Paleta:**
-```json
-{
-  "colors": [
-    {
-      "name": "Primary",
-      "hex": "#3B82F6",
-      "contrast": {
-        "on-light": "7.5:1",
-        "on-dark": "4.6:1"
-      },
-      "wcag": "AAA"
-    }
-  ],
-  "accessibility": {
-    "passes_wcag_aa": true,
-    "passes_wcag_aaa": true
-  }
-}
-```
-
 #### 3.3.3 RAG Local (Hub de Regras)
 - **Estrutura:** `.md` por categoria (`color-rules.md`, `typography-rules.md`, etc.)
 - **Busca:** Keyword-based (sem embedding, simples e rápido)
@@ -286,379 +8,452 @@ Cada agente tem um **system prompt** específico e responde em **JSON estruturad
 ## 4. Roadmap de Prioridades — Dividir e Conquistar
 
 > Cada P representa um bloco de funcionalidades. Complete cada P antes de avançar para o próximo.
+>
+> **Critério de avanço:** Todos os itens do P atual devem estar com status `[x]` no checklist da Seção 14 + testes passando + docs atualizados.
 
 ---
 
 ### 🟢 P1 — Fundações do Projeto
-**Horas estimadas:** ~80h | **Dependências:** Nenhuma
+**Horas estimadas:** ~80h | **Dependências:** Nenhuma | **Risco:** Baixo
 
-1. **Setup do monorepo**
-   - Estrutura de pastas (frontend/backend/docs/prompt/scripts)
-   - `.gitignore` configurado
-   - README inicial com visão geral
-   - LICENSE (MIT)
+> **Objetivo:** Estabelecer a base sólida do projeto com infraestrutura, configurações e documentação mínima viável. Este é o alicerce sobre o qual tudo será construído.
 
-2. **Configuração de ambiente**
-   - `.env.example` documentado (todas as variáveis)
-   - `requirements.txt` com versões fixas
-   - `package.json` com scripts (dev, build, lint, test)
-   - `tsconfig.json` com strict mode
+#### 1.1 Setup do monorepo
+**Descrição:** Criar a estrutura de diretórios que organize todo o código-fonte de forma clara e escalável.
 
-3. **Docker Compose (opcional)**
-   - `docker-compose.yml` com serviços: backend, frontend
-   - `Dockerfile.frontend` + `Dockerfile.backend`
-   - Networks e volumes configurados
+**Critérios de aceite:**
+- [ ] Pastas `frontend/` e `backend/` criadas na raiz do projeto
+- [ ] Pasta `docs/` para documentação técnica (arquitetura, especificações)
+- [ ] Pasta `prompt/` organizada por agente (`branding/`, `palette/`, `typography/`, `ui/`, `ux/`)
+- [ ] Pasta `scripts/` para scripts de automação
+- [ ] `.gitignore` configurado para excluir: `venv/`, `node_modules/`, `__pycache__/`, `.env`, `.next/`, `*.pyc`, `*.db`
+- [ ] README inicial com: nome do projeto, descrição curta, stack tecnológica, links úteis
+- [ ] LICENSE MIT adicionado no root
 
-4. **CI/CD inicial**
-   - GitHub Actions: lint (ruff + eslint)
-   - GitHub Actions: test (pytest + jest)
-   - GitHub Actions: build (next build)
+**Estrutura de diretórios:**
+```
+omni-route-design/
+├── frontend/                    # Next.js + TypeScript + Tailwind
+│   ├── app/                     # App Router (pages)
+│   ├── components/              # Componentes React
+│   │   ├── ui/                  # Componentes base
+│   │   ├── brand/               # Componentes de branding
+│   │   └── design-system/       # Visualizador
+│   ├── lib/                     # Utilitários
+│   │   ├── ai/                  # Cliente de IA
+│   │   ├── tokens/              # Gerenciamento de tokens
+│   │   └── validation/          # Validações
+│   ├── public/                  # Assets estáticos
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── tailwind.config.js
+│   └── postcss.config.js
+│
+├── backend/                     # FastAPI + SQLite
+│   ├── app/
+│   │   ├── agents/              # Agentes de IA
+│   │   ├── routes/              # Rotas da API
+│   │   ├── models/              # Models Pydantic
+│   │   ├── database.py
+│   │   └── main.py
+│   ├── rules/                   # Regras RAG
+│   ├── requirements.txt
+│   └── .env.example
+│
+├── docs/                        # Documentação
+│   ├── arquitetura.md
+│   ├── especificacao-branding-design-system.md
+│   └── prompt-saas-system-design-ia.md
+│
+├── prompt/                      # Prompts organizados
+│   ├── branding/
+│   ├── palette/
+│   ├── typography/
+│   ├── ui/
+│   └── ux/
+│
+├── scripts/                     # Scripts utilitários
+│   ├── setup.ps1                # Windows
+│   ├── setup.sh                 # Linux/Mac
+│   ├── backup.py                # Backup automático
+│   └── restore.py               # Restore de backup
+│
+├── .gitignore
+├── LICENSE
+└── README.md
+```
 
-5. **Documentação inicial**
-   - README.md completo (instalação, uso, configuração)
-   - CONTRIBUTING.md (guia de contribuição)
-   - CHANGELOG.md (formato Keep a Changelog)
+**Testes de aceite:**
+- `git status` mostra apenas arquivos de código (sem venv/node_modules)
+- `git ls-files | grep -E "venv|node_modules"` retorna vazio
+- README abre corretamente no GitHub com formatação adequada
+- LICENSE é reconhecido pelo GitHub
 
----
-
-### 🟡 P2 — Backend Core
-**Horas estimadas:** ~160h | **Dependências:** P1
-
-1. **Modelos de dados**
-   - `models.py`: Project, Brand, DesignSystem (Pydantic)
-   - Tabelas SQL (SQLite)
-   - Relacionamentos (FOREIGN KEY)
-
-2. **Database**
-   - `database.py`: connection, session, migrations
-   - SQLAlchemy ORM configurado
-   - Migrations automáticas (SQLite)
-
-3. **Rotas de Projetos**
-   - `GET /api/v1/projects` — list
-   - `POST /api/v1/projects` — create
-   - `GET /api/v1/projects/{id}` — read
-   - `PUT /api/v1/projects/{id}` — update
-   - `DELETE /api/v1/projects/{id}` — delete
-
-4. **Rotas de Branding**
-   - `POST /api/v1/brand/generate` — gerar branding
-   - `POST /api/v1/brand/validate` — validar WCAG
-   - `GET /api/v1/brand/{id}` — buscar marca
-
-5. **Rotas de AI Config (BYOK)**
-   - `POST /api/v1/ai-config` — configurar API key
-   - `GET /api/v1/ai-config` — status da config
-   - `DELETE /api/v1/ai-config` — remover config
-
-6. **Validação de input**
-   - Schemas Pydantic em todos os endpoints
-   - Validação de tipos, required fields
-   - Mensagens de erro customizadas
-
-7. **Error handling padronizado**
-   - `HTTPException` com códigos 4xx/5xx
-   - Logger estruturado (JSON)
-   - Tratamento de exceptions global
-
-8. **CORS + middleware**
-   - `CORSMiddleware` configurado
-   - Permitir apenas `localhost:7000`
-   - Headers seguros
-
----
-
-### 🔵 P3 — Frontend Core
-**Horas estimadas:** ~120h | **Dependências:** P1
-
-1. **Página inicial (landing)**
-   - Hero section com CTA
-   - Features highlights
-   - Footer com links
-
-2. **Formulário de branding**
-   - Passo 1: Informações do negócio (nome, segmento, tom de voz)
-   - Passo 2: Escolha de paleta (preview em tempo real)
-   - Passo 3: Seleção de tipografia (preview ao vivo)
-   - Validação com Zod
-
-3. **Display de resultados**
-   - Paleta de cores (hex + names)
-   - Escala tipográfica
-   - Botões de exportação
-
-4. **Componentes UI básicos**
-   - Button (primary/secondary/ghost)
-   - Input + Label + Error message
-   - Card (info, success, warning, error)
-   - Modal (genérico)
-
-5. **Validação de input**
-   - Zod schemas no client
-   - Mensagens de erro em tempo real
-   - Feedback visual (bordas, tooltips)
-
-6. **Cliente API**
-   - `lib/api.ts` com funções typed
-   - Error handling (retry, timeout)
-   - Types gerados a partir dos schemas
-
-7. **Navegação**
-   - Next.js App Router
-   - Rotas: `/`, `/brand`, `/design-system`, `/export`
-   - Link components
-
-8. **Layout base**
-   - Navbar (responsive)
-   - Footer
-   - Sidebar (opcional)
-   - Theme provider (dark/light)
+**Riscos e mitigações:**
+- *Estrutura muda no futuro* → Documentar decisões de arquitetura em `docs/arquitetura.md`
+- *Esquecer arquivo no `.gitignore`* → Revisar `.gitignore` antes do primeiro commit, usar `git check-ignore -v <arquivo>`
 
 ---
 
-### 🟣 P4 — Integração IA
-**Horas estimadas:** ~200h | **Dependências:** P2, P3
+#### 1.2 Configuração de ambiente
+**Descrição:** Configurar todos os arquivos de configuração necessários para desenvolvimento e produção, incluindo variáveis de ambiente, dependências e ferramentas.
 
-1. **Cliente OpenAI compatible**
-   - `lib/ai/client.ts` (httpx no backend)
-   - Configuração BYOK (endpoint, key, model)
-   - Tipos de response (json structured)
+**Critérios de aceite:**
+- [ ] `.env.example` documentado com todas as variáveis e descrições
+- [ ] `requirements.txt` com versões fixas (ex: `fastapi==0.111.0`)
+- [ ] `package.json` com scripts: `dev`, `build`, `lint`, `test`, `test:integration`, `test:e2e`
+- [ ] `tsconfig.json` com `strict: true` e configurações recomendadas
+- [ ] `pyproject.toml` ou `setup.cfg` com configuração do Ruff
+- [ ] `.prettierrc` para padronização de código
+- [ ] `.eslintrc.json` com regras recomendadas
 
-2. **Agente de branding**
-   - System prompt otimizado
-   - Output JSON: palette, typography, explanation
-   - Validação do response
+**Variáveis de ambiente necessárias:**
+```env
+# ============================================
+# IA (Bring Your Own Key)
+# ============================================
+AI_PROVIDER=openai                    # openai, anthropic, ollama
+AI_BASE_URL=https://api.openai.com/v1 # Endpoint da API
+AI_API_KEY=sk-...                     # Sua API key
+AI_MODEL=gpt-4o                       # Modelo a usar
 
-3. **Agente de paleta**
-   - Geração de cores (primary, secondary, accent, neutral)
-   - Cálculo de contraste (WCAG)
-   - Sugestões de ajustes
+# Para Ollama local:
+# AI_PROVIDER=openai
+# AI_BASE_URL=http://localhost:11434/v1
+# AI_API_KEY=ollama
+# AI_MODEL=llama3.2
 
-4. **Agente de tipografia**
-   - Seleção de fontes (Google Fonts)
-   - Font pairing (máx 2 famílias)
-   - Escala modular (ratio 1.25)
+# ============================================
+# Banco de Dados
+# ============================================
+DATABASE_URL=sqlite+aiosqlite:///./omni-route-design.db
 
-5. **RAG local (Hub de Regras)**
-   - `rules/color-rules.md` — regras de cor
-   - `rules/typography-rules.md` — regras de tipografia
-   - `rules/ui-rules.md` — regras de UI
-   - Busca keyword-based
+# ============================================
+# Backend
+# ============================================
+BACKEND_HOST=0.0.0.0
+BACKEND_PORT=5001
+CORS_ORIGINS=http://localhost:7000
 
-6. **Retry logic**
-   - Timeout de 30s por request
-   - Retry 3x com backoff exponencial
-   - Fall back para modelo padrão
+# ============================================
+# Frontend
+# ============================================
+NEXT_PUBLIC_API_URL=http://localhost:5001/api/v1
 
-7. **Logging estruturado**
-   - Logger de requests/responses
-   - Tempo de resposta
-   - Erros da API (4xx/5xx)
+# ============================================
+# Segurança
+# ============================================
+CREDENTIALS_ENCRYPTION_KEY=       # Fernet key para criptografar API keys
+```
 
----
+**Arquivos de configuração:**
 
-### 🟠 P5 — Validação & UX
-**Horas estimadas:** ~80h | **Dependências:** P4
+`package.json` (scripts):
+```json
+{
+  "scripts": {
+    "dev": "next dev -- -p 7000",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "jest",
+    "test:integration": "jest --config jest.integration.config.js",
+    "test:e2e": "cypress run"
+  }
+}
+```
 
-1. **Validador WCAG**
-   - Contraste texto/fundo (4.5:1 AA, 7:1 AAA)
-   - Simulação de daltonismo (protanopia, deuteranopia, tritanopia)
-   - Feedback visual (verde/amarelo/vermelho)
+`requirements.txt`:
+```
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+sqlalchemy==2.0.30
+aiosqlite==0.20.0
+pydantic==2.7.1
+pydantic-settings==2.2.1
+openai==1.23.2
+httpx==0.27.0
+python-dotenv==1.0.1
+aiofiles==23.2.1
+python-multipart==0.0.9
+cryptography==42.0.0
+ruff==0.1.0
+pytest==7.4.0
+pytest-asyncio==0.21.0
+httpx==0.27.0
+```
 
-2. **Indicadores visuais (farol)**
-   - Ícone + cor para cada validação
-   - Tooltip explicativo
-   - Posição inline nos campos
-
-3. **Tooltips explicativos**
-   - Cada campo tem help text
-   - Explicação do "porquê"
-   - Links para documentação
-
-4. **Modo simples/avançado**
-   - Toggle no header
-   - Simples: defaults otimizados
-   - Avançado: controle total dos params
-
-5. **Feedback em tempo real**
-   - Validação após cada input
-   - Loading states (skeleton)
-   - Erros amigáveis (sem stack trace)
-
----
-
-### 🟤 P6 — Design System Viewer
-**Horas estimadas:** ~100h | **Dependências:** P5
-
-1. **Visualização de tokens**
-   - JSON preview (tree view)
-   - CSS Variables (preview)
-   - Tailwind Config (preview)
-
-2. **Preview de componentes**
-   - Botões (todos os variants)
-   - Cards (info, success, warning, error)
-   - Forms (input, select, checkbox, radio)
-   - Navbar, Footer
-
-3. **Toggle dark/light mode**
-   - Theme provider
-   - Persistência no localStorage
-   - Transições suaves
-
-4. **Exportação de tokens**
-   - JSON (Design Tokens format)
-   - CSS Variables
-   - Tailwind Config
-   - Style Dictionary
-
-5. **Storybook**
-   - Documentação de componentes
-   - Stories para cada variant
-   - Controls para testar props
+**Testes de aceite:**
+- `cp .env.example .env` e o backend inicia sem erro de variável faltante
+- `pnpm dev` inicia o Next.js na porta 7000
+- `ruff check .` passa sem erros no backend
+- `pnpm lint` passa no frontend
 
 ---
 
-### 🔴 P7 — Features Avançadas
-**Horas estimadas:** ~160h | **Dependências:** P6
+#### 1.3 Docker Compose (opcional)
+**Descrição:** Containerização para facilitar setup em qualquer máquina, garantindo consistência de ambiente.
 
-1. **Vetorização PNG→SVG**
-   - Integração com `potrace` (backend)
-   - Upload de logo PNG
-   - Processamento e export SVG
-   - *Nota: resultado é "melhor esforço"*
+**Critérios de aceite:**
+- [ ] `docker-compose.yml` com serviços: `backend`, `frontend`
+- [ ] `Dockerfile.backend` com Python 3.12-slim
+- [ ] `Dockerfile.frontend` com Node 22-alpine
+- [ ] Rede Docker configurada
+- [ ] Volumes para persistência do banco e dados
+- [ ] Health checks configurados
 
-2. **Geração de logo tipográfica**
-   - Texto + fonte selecionada
-   - Variações (cor, fundo, tamanho)
-   - Export SVG/PNG
+**Exemplo `docker-compose.yml`:**
+```yaml
+version: '3.8'
 
-3. **Banco de paletas contribuídas**
-   - CRUD de paletas
-   - Rating e comentários
-   - Filtros por cor/segmento
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.backend
+    ports:
+      - "5001:5001"
+    env_file:
+      - .env
+    volumes:
+      - ./backend/data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - omni-route-net
 
-4. **Banco de combinações de fontes**
-   - Font pairing sugerido
-   - Preview ao vivo
-   - Rating e comentários
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "7000:7000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:5001/api/v1
+    networks:
+      - omni-route-net
 
-5. **Sistema de templates**
-   - Templates prontos (blog, portfolio, e-commerce)
-   - Customização via UI
-   - Exportação completa
+networks:
+  omni-route-net:
+    driver: bridge
+```
 
----
+**Dockerfile.backend:**
+```dockerfile
+FROM python:3.12-slim
 
-### ⚫ P8 — Comunidade & Ecossistema
-**Horas estimadas:** ~120h | **Dependências:** P7
+WORKDIR /app
 
-1. **Marketplace de templates**
-   - Listagem de templates
-   - Sistema de ratings
-   - Compra/venda (Stripe)
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-2. **Avaliações e reviews**
-   - Sistema de notas (1-5 estrelas)
-   - Comentários
-   - Moderação
+COPY . .
 
-3. **Compartilhamento de designs**
-   - Galeria pública
-   - Feed de designs recentes
-   - Filtros por cor/tipo
+EXPOSE 5001
 
-4. **Sistema de versões**
-   - Salvar múltiplas versões do projeto
-   - Diff entre versões
-   - Rollback
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "5001"]
+```
 
----
+**Dockerfile.frontend:**
+```dockerfile
+FROM node:22-alpine
 
-### 🔘 P9 — Deploy & Infra
-**Horas estimadas:** ~60h | **Dependências:** P8
+WORKDIR /app
 
-1. **Versão hospedada**
-   - Vercel (frontend)
-   - Railway/Render (backend)
-   - Banco SQLite na nuvem (opcional)
+COPY package.json pnpm-lock.yaml ./
+RUN npm install -g pnpm && pnpm install --frozen-lockfile
 
-2. **Monitoramento**
-   - Logs centralizados (Loki)
-   - Métricas (Prometheus)
-   - Alertas (Alertmanager)
+COPY . .
 
-3. **Backup automático**
-   - Script `backup.py` (semanal)
-   - Cron job / Task Scheduler
-   - Armazenamento local + cloud (opcional)
+EXPOSE 7000
 
-4. **Restore manual**
-   - Documentação passo a passo
-   - Script `restore.py`
-   - Validação de integridade do DB
+CMD ["pnpm", "dev", "--", "-p", "7000"]
+```
 
----
-
-### 🔷 P10 — Monetização
-**Horas estimadas:** ~80h | **Dependências:** P9
-
-1. **Templates premium**
-   - Templates pagos no marketplace
-   - Sistema de licenças
-   - Downloads após pagamento
-
-2. **Exportação avançada**
-   - Sketch, Figma, Adobe XD
-   - React/Vue components
-   - CSS/SCSS modules
-
-3. **Suporte enterprise**
-   - Consultoria personalizada
-   - Implementação dedicada
-   - SLA garantido
-
-4. **API paga (SaaS)**
-   - Preço por request
-   - Rate limiting
-   - Dashboard de uso
+**Testes de aceite:**
+- `docker-compose up -d` inicia ambos os serviços
+- `docker-compose ps` mostra ambos como `healthy`
+- `curl http://localhost:5001/health` retorna `{"status":"ok"}`
+- `curl http://localhost:7000` retorna HTML da página inicial
 
 ---
 
-### 🔶 P11 — Integrações
-**Horas estimadas:** ~100h | **Dependências:** P10
+#### 1.4 CI/CD inicial
+**Descrição:** Pipeline automatizado para lint, testes e build, garantindo qualidade do código.
 
-1. **Plugin para Figma**
-   - Importar tokens do projeto
-   - Criar estilos e componentes
-   - Sincronização bidirecional
+**Critérios de aceite:**
+- [ ] `.github/workflows/ci.yml` configurado
+- [ ] Job de lint: `ruff check` no backend, `eslint` no frontend
+- [ ] Job de teste: `pytest` no backend, `jest` no frontend
+- [ ] Job de build: `next build` no frontend
+- [ ] Job de segurança: `trivy` para扫描 dependências
+- [ ] Status badge no README
 
-2. **Plugin para VS Code**
-   - Snippets de tokens
-   - Preview em tempo real
-   - Validação de WCAG
+**Exemplo de workflow (`ci.yml`):**
+```yaml
+name: CI
 
-3. **Export para React/Vue**
-   - Components prontos
-   - TypeScript types
-   - Storybook integrado
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
-4. **Export para CSS/SCSS**
-   - Variables CSS
-   - Tailwind config
-   - Style Dictionary
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Backend lint
+        run: |
+          cd backend
+          pip install ruff
+          ruff check .
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Frontend lint
+        run: |
+          cd frontend
+          pnpm install
+          pnpm lint
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Backend tests
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          pytest tests/ -v
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Frontend tests
+        run: |
+          cd frontend
+          pnpm install
+          pnpm test
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Frontend build
+        run: |
+          cd frontend
+          pnpm install
+          pnpm build
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          target: backend/requirements.txt
+          format: 'table'
+          exit-code: '1'
+          severity: 'CRITICAL,HIGH'
+```
+
+**Testes de aceite:**
+- Push para branch trigger workflows
+- Todos os jobs passam (verde)
+- Badge no README mostra status atual
 
 ---
 
-## 5. Fluxo do Usuário
+#### 1.5 Documentação inicial
+**Descrição:** Documentação mínima para uso e contribuição no projeto.
 
-### 5.1 Instalação
+**Critérios de aceite:**
+- [ ] `README.md` com: descrição, stack, instalação, uso, configuração, testes
+- [ ] `CONTRIBUTING.md` com: guia de contribuição, code style, fluxo de PR
+- [ ] `CHANGELOG.md` com formato Keep a Changelog
+- [ ] Documentação de API automática via Swagger (FastAPI)
+- [ ] README renderiza corretamente no GitHub
+
+**Estrutura do README:**
+```markdown
+# OmniRoute Design System
+
+> Sistema open source de branding e design system com IA, rodando localmente na sua máquina.
+
+[![CI](https://github.com/gabriell-c/brandIA/actions/workflows/ci.yml/badge.svg)](https://github.com/gabriell-c/brandIA/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+## 🚀 Introdução
+
+O OmniRoute Design System é uma ferramenta open source que permite gerar **branding completo + design system navegável** usando IA, rodando **localmente** na sua máquina. Configure sua própria API key (OpenAI, Anthropic, Ollama, etc.) e gere uma identidade visual consistente para seu projeto.
+
+### ✨ Funcionalidades
+- Geração de branding com IA (paleta, tipografia, explicação)
+- Validação de contraste WCAG em tempo real
+- Exportação de design tokens (JSON, CSS, Tailwind)
+- Visualizador interativo do design system
+- 100% local — seus dados não saem da sua máquina
+
+### 🛠 Stack
+- **Frontend:** Next.js 14 + TypeScript + Tailwind CSS
+- **Backend:** Python 3.12 + FastAPI + SQLite
+- **IA:** OpenAI-compatible API (OpenAI, Anthropic, Ollama)
+- **Arquitetura:** Monorepo
+
+## 📦 Instalação
+
+### Pré-requisitos
+- Node.js 22+
+- Python 3.12+
+- pnpm
+
+### Backend
 ```bash
-# 1. Clona o repositório
-git clone https://github.com/.../omni-route-design
-cd omni-route-design
-
-# 2. Backend
 cd backend
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
@@ -666,310 +461,907 @@ pip install -r requirements.txt
 cp .env.example .env
 # Edita .env com suas keys
 uvicorn app.main:app --reload --port 5001
-
-# 3. Frontend (em outro terminal)
-cd ../frontend
-pnpm install
-pnpm dev -- -p 7000
-
-# 4. Acesso
-# http://localhost:7000
 ```
 
-### 5.2 Fluxo de Uso
-1. **Configurar IA:** Usuário insere `BASE_URL`, `API_KEY`, `MODEL`
-2. **Criar projeto:** Nome do negócio, segmento, tom de voz
-3. **Gerar branding:** IA retorna paleta + tipografia + explicação
-4. **Validar:** Sistema verifica contraste WCAG, sugere ajustes
-5. **Ajustar:** Usuário pode modificar manualmente (modo avançado)
-6. **Exportar:** Tokens em JSON, CSS vars, Tailwind config
-
----
-
-## 6. Regras de Negócio
-
-### 6.1 Validação de Cores
-- **WCAG AA:** Contraste mínimo 4.5:1 (texto normal), 3:1 (texto grande)
-- **WCAG AAA:** Contraste mínimo 7:1 (texto normal), 4.5:1 (texto grande)
-- **Simulação de daltonismo:** Verificar se paleta funciona para deficiências
-
-### 6.2 Tipografia
-- **Escala modular:** Ratio 1.25 (módulo base)
-- **Line-height:** Mínimo 1.5 para corpo de texto
-- **Font pairing:** Máximo 2 famílias tipográficas por projeto
-
-### 6.3 Acessibilidade
-- **Contraste:** Sempre validar antes de aprovar
-- **Foco visível:** Indicadores de foco em todos os elementos interativos
-- **Semântica HTML:** Uso correto de tags (h1-h6, button, nav, etc.)
-
----
-
-## 7. Testes
-
-### 7.1 Frontend
+### Frontend
 ```bash
-# Testes unitários
+cd frontend
+pnpm install
+pnpm dev
+```
+
+### Acesso
+- Frontend: http://localhost:7000
+- Backend API: http://localhost:5001
+- Docs da API: http://localhost:5001/docs
+
+## 🔧 Configuração
+
+Copie `.env.example` para `.env` e preencha:
+
+```env
+AI_PROVIDER=openai
+AI_BASE_URL=https://api.openai.com/v1
+AI_API_KEY=sk-...
+AI_MODEL=gpt-4o
+```
+
+## 🧪 Testes
+
+```bash
+# Backend
+cd backend
+pytest tests/ -v
+
+# Frontend
+cd frontend
 pnpm test
-
-# Testes de integração
 pnpm test:integration
-
-# Testes E2E (Cypress)
 pnpm test:e2e
 ```
 
-### 7.2 Backend
-```bash
-# Testes unitários
-pytest tests/unit
+## 📚 Documentação
+- [API Docs](http://localhost:5001/docs) — Swagger automático
+- [Contribuindo](CONTRIBUTING.md) — Guia para contribuidores
+- [Arquitetura](docs/arquitetura.md) — Detalhes técnicos
 
-# Testes de integração
-pytest tests/integration
-
-# Lint
-ruff check .
+## 📄 Licença
+MIT — veja [LICENSE](LICENSE) para detalhes.
 ```
 
+**Testes de aceite:**
+- README renderiza corretamente no GitHub
+- Links internos funcionam
+- Swagger mostra todos os endpoints em `http://localhost:5001/docs`
+
 ---
 
-## 8. Error Handling & Recovery
+### 🟡 P2 — Backend Core
+**Horas estimadas:** ~160h | **Dependências:** P1 | **Risco:** Baixo
 
-### 8.1 Frontend
-- **Timeout na IA:** Retry 3x com backoff exponencial, depois mostrar erro claro ao usuário
-- **Falha na API backend:** Verificar se serviço está rodando (porta 5001), erro amigável
-- **Validação de input:** Zod no client + Pydantic no server, erros em tempo real nos formulários
-- **Rede offline:** Detectar offline, cache local (IndexedDB) para visualizar último estado
+> **Objetivo:** Implementar a API REST completa com CRUD de projetos, branding e configuração de IA. O backend é o coração do sistema — sem ele, não há funcionalidade.
 
-### 8.2 Backend
-- **SQLite corrupto:** Backup automático semanal, restoring via `sqlite3 .backup`
-- **IA erro 4xx/5xx:** Log estruturado com código de erro, mensagem clara pro usuário
-- **Concorrência (raro em local):** Lock no arquivo `.db` se múltiplas instâncias rodarem
-- **Rate limit da IA:** Respeitar headers `Retry-After`, implementar fila local se necessário
+#### 2.1 Modelos de dados
+**Descrição:** Definir os schemas Pydantic e tabelas SQLite que representam o domínio do projeto.
 
-### 8.3 Recovery
-- **Backup automático:** `.omni-route-design-backup.db` criado toda vez que salvar projeto
-- **Restore manual:**
-```bash
-# Parar o backend (Ctrl+C)
-# Restaurar backup
-cp .omni-route-design-backup.db .omni-route-design.db
-# Iniciar backend novamente
-uvicorn app.main:app --reload --port 5001
+**Critérios de aceite:**
+- [ ] Tabela `projects`: id, name, created_at, updated_at
+- [ ] Tabela `brands`: id, project_id, business_name, segment, tone_of_voice, palette, typography, logo_svg, created_at
+- [ ] Tabela `design_system`: id, brand_id, tokens, components, created_at
+- [ ] Relacionamentos FOREIGN KEY configurados (CASCADE DELETE)
+- [ ] Migrações automáticas ao iniciar o servidor
+- [ ] Índices em campos frequentemente consultados
+
+**Schema SQLite completo:**
+```sql
+CREATE TABLE projects (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE brands (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    business_name TEXT,
+    segment TEXT CHECK(segment IN ('tecnologia', 'alimentação', 'saúde', 'educação', 'moda', 'esporte', 'entretenimento', 'finanças', 'outro')),
+    tone_of_voice TEXT CHECK(tone_of_voice IN ('formal', 'informal', 'amigável', 'profissional', 'criativo', 'sério', 'descontraído', 'outro')),
+    palette JSON,
+    typography JSON,
+    logo_svg TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (project_id) REFERENCES projects(id)
+);
+
+CREATE TABLE design_system (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    brand_id INTEGER NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
+    tokens JSON,
+    components JSON,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (brand_id) REFERENCES brands(id)
+);
+
+CREATE INDEX idx_brands_project_id ON brands(project_id);
+CREATE INDEX idx_design_system_brand_id ON design_system(brand_id);
 ```
 
----
+**Pydantic Models (`app/models.py`):**
+```python
+from pydantic import BaseModel, Field
+from typing import Optional, Dict, Any
+from datetime import datetime
 
-## 9. Backup & Restore
 
-### 9.1 O que é backupado
-- Arquivo `.omni-route-design.db` (todos os projetos, marcas, design systems)
-- Configuração da IA (`.env` — **atenção:** contém API keys, backup seguro se fizer)
-- Arquivos exportados pelo usuário (design tokens JSON, CSS vars, Tailwind config)
+class ProjectBase(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
 
-### 9.2 Como fazer backup
-- **Automático:** Script `backup.py` roda toda vez que um projeto é salvo — copia `.db` para `.db.backup`
-- **Manual:** Usuário copia `.omni-route-design.db` para pasta segura
-- **Agendado (opcional):** Cron job / Task Scheduler semanal
 
-### 9.3 Como restaurar
-```bash
-# 1. Parar backend
-# 2. Restaurar
-cp /caminho/do/backup/.omni-route-design.db.backup .omni-route-design.db
-# 3. Iniciar backend
-uvicorn app.main:app --reload --port 5001
+class ProjectCreate(ProjectBase):
+    pass
+
+
+class ProjectUpdate(ProjectBase):
+    pass
+
+
+class ProjectResponse(ProjectBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class BrandBase(BaseModel):
+    business_name: str = Field(..., min_length=1, max_length=100)
+    segment: str
+    tone_of_voice: str
+
+
+class BrandCreate(BrandBase):
+    project_id: int
+
+
+class BrandResponse(BrandBase):
+    id: int
+    project_id: int
+    palette: Optional[Dict[str, str]] = None
+    typography: Optional[Dict[str, str]] = None
+    logo_svg: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class DesignSystemResponse(BaseModel):
+    id: int
+    brand_id: int
+    tokens: Dict[str, Any]
+    components: Dict[str, Any]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
 ```
 
+**Testes de aceite:**
+- `pytest tests/test_models.py` — todos passam
+- Tabelas são criadas ao iniciar o servidor
+- Constraints de CHECK funcionam (segmento inválido retorna erro)
+
 ---
 
-## 10. Scripts de Setup Automatizado
+#### 2.2 Database
+**Descrição:** Configurar conexão assíncrona com SQLite usando SQLAlchemy.
 
-### 10.1 Setup único (primeira vez)
-```bash
-# setup.ps1 (Windows)
-# setup.sh (Linux/Mac)
-# O script faz:
-# 1. Cria venv Python no backend
-# 2. Instala requirements.txt
-# 3. Copia .env.example para .env
-# 4. Inicializa SQLite (cria tabelas)
-# 5. Instala pnpm dependencies no frontend
-# 6. Abre dois terminais: backend (porta 5001) + frontend (porta 7000)
+**Critérios de aceite:**
+- [ ] `database.py` com `AsyncEngine` e `async_session_maker`
+- [ ] `get_db()` dependency injetável
+- [ ] Migrations automáticas via `Base.metadata.create_all()`
+- [ ] Conexão testada com query simples
+- [ ] Pool de conexões configurado
+
+**Implementação (`app/database.py`):**
+```python
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.orm import DeclarativeBase
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./omni-route-design.db")
+
+# Engine assíncrono para operações
+engine = create_async_engine(
+    DATABASE_URL,
+    echo=False,
+    pool_size=5,
+    max_overflow=10
+)
+
+# Factory de sessões
+async_session_maker = async_sessionmaker(
+    engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+    autoflush=False,
+    autocommit=False
+)
+
+
+class Base(DeclarativeBase):
+    pass
+
+
+async def init_db():
+    """Inicializa tabelas no banco"""
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+
+async def get_db() -> AsyncSession:
+    """Dependency injetável para sessões de banco"""
+    async with async_session_maker() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
 ```
 
-### 10.2 Estrutura dos scripts
+**Testes de aceite:**
+- Backend inicia sem erro de conexão
+- Arquivo `.db` é criado na primeira inicialização
+- Query simples funciona: `SELECT * FROM projects`
+
+---
+
+#### 2.3 Rotas de Projetos
+**Critérios de aceite:**
+- [ ] `GET /api/v1/projects` — lista todos os projetos
+- [ ] `POST /api/v1/projects` — cria projeto (201)
+- [ ] `GET /api/v1/projects/{id}` — busca projeto
+- [ ] `PUT /api/v1/projects/{id}` — atualiza projeto
+- [ ] `DELETE /api/v1/projects/{id}` — deleta projeto (204)
+- [ ] Validação de input com Pydantic
+- [ ] Erros 404 para projeto não encontrado
+- [ ] Erros 422 para input inválido
+- [ ] Ordenação por `created_at` descending
+
+**Exemplo de implementação:**
+```python
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from app.database import get_db
+from app.schemas import ProjectCreate, ProjectUpdate, ProjectResponse
+from app.models import Project
+
+router = APIRouter(prefix="/projects", tags=["projects"])
+
+
+@router.get("/", response_model=list[ProjectResponse])
+async def list_projects(
+    db: AsyncSession = Depends(get_db),
+    skip: int = 0,
+    limit: int = 100
+):
+    """Lista todos os projetos"""
+    result = await db.execute(
+        select(Project)
+        .order_by(Project.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+    )
+    return result.scalars().all()
+
+
+@router.post("/", response_model=ProjectResponse, status_code=201)
+async def create_project(
+    project: ProjectCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    """Cria um novo projeto"""
+    db_project = Project(name=project.name)
+    db.add(db_project)
+    await db.flush()
+    await db.refresh(db_project)
+    return db_project
+
+
+@router.get("/{project_id}", response_model=ProjectResponse)
+async def get_project(
+    project_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """Busca projeto por ID"""
+    result = await db.execute(select(Project).where(Project.id == project_id))
+    project = result.scalar_one_or_none()
+    if not project:
+        raise HTTPException(status_code=404, detail="Projeto não encontrado")
+    return project
+
+
+@router.put("/{project_id}", response_model=ProjectResponse)
+async def update_project(
+    project_id: int,
+    project: ProjectUpdate,
+    db: AsyncSession = Depends(get_db)
+):
+    """Atualiza projeto"""
+    db_project = await db.get(Project, project_id)
+    if not db_project:
+        raise HTTPException(status_code=404, detail="Projeto não encontrado")
+    db_project.name = project.name
+    await db.flush()
+    await db.refresh(db_project)
+    return db_project
+
+
+@router.delete("/{project_id}", status_code=204)
+async def delete_project(
+    project_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """Deleta projeto"""
+    db_project = await db.get(Project, project_id)
+    if not db_project:
+        raise HTTPException(status_code=404, detail="Projeto não encontrado")
+    await db.delete(db_project)
 ```
-scripts/
-├── setup.ps1          # Windows PowerShell
-├── setup.sh           # Linux/Mac Bash
-├── backup.py          # Backup automático do SQLite
-├── restore.py         # Restore de backup
-└── dev.ps1            # Inicia dev servers (backend + frontend)
+
+**Testes de aceite:**
+- `pytest tests/test_projects.py` — todos passam
+- POST cria projeto e retorna 201 com ID
+- GET retorna projeto existente
+- PUT atualiza nome corretamente
+- DELETE remove projeto e retorna 204
+- GET de projeto inexistente retorna 404
+- POST com nome vazio retorna 422
+
+---
+
+#### 2.4 Rotas de Branding
+**Critérios de aceite:**
+- [ ] `POST /api/v1/brand/generate` — gera branding via IA
+- [ ] `POST /api/v1/brand/validate` — valida contraste WCAG
+- [ ] `GET /api/v1/brand/{id}` — busca marca
+- [ ] Response com palette, typography e explicação
+- [ ] Validação WCAG retorna status (pass/fail)
+- [ ] Explicação das escolhas de cor/fonte
+
+**Exemplo de response:**
+```json
+{
+  "id": 1,
+  "project_id": 1,
+  "business_name": "Café Aroma",
+  "segment": "alimentação",
+  "tone_of_voice": "aconchegante",
+  "palette": {
+    "primary": "#8B4513",
+    "secondary": "#D2B48C",
+    "accent": "#2F4F4F",
+    "neutral": "#F5F5F5",
+    "light": "#FFFFFF",
+    "dark": "#1A1A1A"
+  },
+  "typography": {
+    "heading": "Playfair Display",
+    "body": "Inter",
+    "mono": "JetBrains Mono"
+  },
+  "explanation": "Cores quentes de café combinadas com tipografia serifada para transmitir tradição e elegância.",
+  "accessibility": {
+    "passes_wcag_aa": true,
+    "passes_wcag_aaa": false,
+    "contrast_ratios": {
+      "primary_on_light": "7.5:1",
+      "primary_on_dark": "4.6:1"
+    }
+  },
+  "created_at": "2026-09-14T10:00:00Z"
+}
 ```
 
----
-
-## 11. Versionamento & Changelog
-
-### 11.1 Versionamento Semântico (SemVer)
-- **MAJOR:** Breaking changes na API, schema do DB, ou formato de tokens
-- **MINOR:** Novas features (ex: novo agente, nova exportação) sem breaking changes
-- **PATCH:** Bug fixes, docs, ajustes visuais
-
-### 11.2 Changelog
-- Arquivo `CHANGELOG.md` na raiz do projeto
-- Formato: [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/)
-- Entradas por versão com data, categorias: Added, Changed, Deprecated, Removed, Fixed, Security
-
-### 11.3 Tags Git
-- Tag em cada release: `v1.0.0`, `v1.1.0`, etc.
-- `main` sempre deployável (versão estável)
+**Testes de aceite:**
+- `pytest tests/test_brand.py` — geração e validação passam
+- Validação retorna `passes_wcag_aa: true/false`
+- Explicação é gerada pela IA
 
 ---
 
-## 12. Guia de Contribuição (CONTRIBUTING.md)
+#### 2.5 Rotas de AI Config (BYOK)
+**Critérios de aceite:**
+- [ ] `POST /api/v1/ai-config` — salva configuração criptografada
+- [ ] `GET /api/v1/ai-config` — retorna status (sem expor key)
+- [ ] `DELETE /api/v1/ai-config` — remove configuração
+- [ ] Configuração armazenada criptografada (Fernet)
+- [ ] Validação de URL e model
+- [ ] Teste de conectividade com a API
 
-### 12.1 Como contribuir
-1. Fork do repositório
-2. Branch: `feature/nome-da-feature` ou `fix/nome-do-bug`
-3. Commits: Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`)
-4. PR com descrição clara + screenshots se UI
-5. Testes passam (CI roda automaticamente)
+**Criptografia:**
+```python
+from cryptography.fernet import Fernet
+from dotenv import load_dotenv
+import os
 
-### 12.2 Code Style
-- **Frontend:** ESLint + Prettier (config no repo)
-- **Backend:** Ruff (lint + format)
-- **TypeScript:** Strict mode
-- **Python:** Type hints obrigatórios em funções públicas
+load_dotenv()
 
-### 12.3 Reportar Bug
-- Use template de Issue no GitHub
-- Incluir: passos para reproduzir, esperado vs atual, logs/erros
+ENCRYPTION_KEY = os.getenv("CREDENTIALS_ENCRYPTION_KEY")
+if not ENCRYPTION_KEY:
+    ENCRYPTION_KEY = Fernet.generate_key().decode()
+    os.environ["CREDENTIALS_ENCRYPTION_KEY"] = ENCRYPTION_KEY
 
-### 12.4 Propor Feature
-- Abra Issue com label `enhancement`
-- Descreva: problema, solução proposta, alternativas consideradas
+fernet = Fernet(ENCRYPTION_KEY.encode())
 
----
 
-## 13. Segurança
+def encrypt_value(value: str) -> str:
+    return fernet.encrypt(value.encode()).decode()
 
-Como é local e BYOK:
-- **Nenhuma credencial é enviada para servidores externos** (exceto a API de IA configurada pelo usuário)
-- **Arquivo `.db` fica local** — nunca é enviado para nuvem
-- **`.env` nunca é commitado** — usar `.env.example`
-- **Rate limiting:** Respeitar limites da API de IA configurada
-- **Input sanitization:** Zod (frontend) + Pydantic (backend) em todos inputs
 
----
+def decrypt_value(encrypted: str) -> str:
+    return fernet.decrypt(encrypted.encode()).decode()
+```
 
-## 14. Roadmap de Execução
-
-> Siga a ordem das prioridades. Cada P deve estar completo antes de iniciar o próximo.
-
-### Fase 1 — Fundação (P1)
-- [ ] Setup do monorepo (frontend/backend)
-- [ ] Configurar `.env.example`, `requirements.txt`, `package.json`
-- [ ] Configurar Docker Compose (opcional)
-- [ ] Configurar CI/CD inicial (lint + test + build)
-- [ ] Criar README.md, CONTRIBUTING.md, CHANGELOG.md
-
-### Fase 2 — Backend (P2)
-- [ ] Implementar modelos de dados (Project, Brand, DesignSystem)
-- [ ] Configurar database (SQLite + SQLAlchemy)
-- [ ] Implementar rotas de Projetos (CRUD)
-- [ ] Implementar rotas de Branding
-- [ ] Implementar rotas de AI Config (BYOK)
-- [ ] Configurar validação de input (Pydantic)
-- [ ] Implementar error handling padronizado
-- [ ] Configurar CORS + middleware
-
-### Fase 3 — Frontend (P3)
-- [ ] Criar página inicial (landing)
-- [ ] Implementar formulário de branding (3 passos)
-- [ ] Criar display de resultados
-- [ ] Implementar componentes UI básicos
-- [ ] Configurar validação de input (Zod)
-- [ ] Criar cliente API (`lib/api.ts`)
-- [ ] Configurar navegação (Next.js App Router)
-- [ ] Criar layout base (navbar, footer, theme provider)
-
-### Fase 4 — IA (P4)
-- [ ] Criar cliente OpenAI compatible
-- [ ] Implementar agente de branding
-- [ ] Implementar agente de paleta
-- [ ] Implementar agente de tipografia
-- [ ] Criar RAG local (regras em `.md`)
-- [ ] Implementar retry logic
-- [ ] Configurar logging estruturado
-
-### Fase 5 — UX (P5)
-- [ ] Implementar validador WCAG
-- [ ] Criar indicadores visuais (farol)
-- [ ] Adicionar tooltips explicativos
-- [ ] Implementar modo simples/avançado
-- [ ] Adicionar feedback em tempo real
-
-### Fase 6 — Viewer (P6)
-- [ ] Criar visualização de tokens
-- [ ] Implementar preview de componentes
-- [ ] Adicionar toggle dark/light
-- [ ] Criar exportação de tokens
-- [ ] Configurar Storybook
-
-### Fase 7 — Avançado (P7)
-- [ ] Implementar vetorização PNG→SVG
-- [ ] Criar geração de logo tipográfica
-- [ ] Implementar banco de paletas contribuídas
-- [ ] Criar banco de combinações de fontes
-- [ ] Implementar sistema de templates
-
-### Fase 8 — Comunidade (P8)
-- [ ] Criar marketplace de templates
-- [ ] Implementar sistema de ratings
-- [ ] Criar compartilhamento de designs
-- [ ] Implementar sistema de versões
-
-### Fase 9 — Deploy (P9)
-- [ ] Deploy para Vercel + Railway
-- [ ] Configurar monitoramento (logs + métricas)
-- [ ] Implementar backup automático
-- [ ] Criar documentação de restore
-
-### Fase 10 — Monetização (P10)
-- [ ] Criar templates premium
-- [ ] Implementar exportação avançada
-- [ ] Configurar suporte enterprise
-- [ ] Criar API paga (SaaS)
-
-### Fase 11 — Integrações (P11)
-- [ ] Criar plugin para Figma
-- [ ] Criar plugin para VS Code
-- [ ] Implementar export para React/Vue
-- [ ] Criar export para CSS/SCSS
+**Testes de aceite:**
+- POST salva config e retorna 200
+- GET retorna `{"configured": true, "provider": "openai"}` (sem mostrar key)
+- DELETE remove config
+- Chave de criptografia é gerada automaticamente se não existir
 
 ---
 
-**Teste com usuários reais** após completar o P6 (Design System Viewer).
-**Divulgar projeto** após completar o P9 (Deploy & Infra).
+#### 2.6 Validação de input
+**Critérios de aceite:**
+- [ ] Schemas em `app/schemas.py`
+- [ ] Todos os endpoints usam Pydantic models
+- [ ] Mensagens de erro claras em português
+- [ ] Validação de tipos, required fields, max_length, patterns
+
+**Exemplo de schemas:**
+```python
+from pydantic import BaseModel, Field, validator
+from typing import Optional, Dict, Any
+import re
+
+class BrandGenerateRequest(BaseModel):
+    business_name: str = Field(..., min_length=1, max_length=100)
+    segment: str = Field(..., pattern=r"^(tecnologia|alimentação|saúde|educação|moda|esporte|entretenimento|finanças|outro)$")
+    tone_of_voice: str = Field(..., pattern=r"^(formal|informal|amigável|profissional|criativo|sério|descontraído|outro)$")
+    description: Optional[str] = Field(None, max_length=500)
+
+    @validator('business_name')
+    def validate_business_name(cls, v):
+        if not re.match(r'^[a-zA-Z0-9\s\-çãéóúïèêëéïîìàÄÖÜßéñçàèéìòùÁÉÍÓÚáéíóúñ]', v):
+            raise ValueError('Nome deve conter apenas letras, números e espaços')
+        return v
+```
+
+**Testes de aceite:**
+- Request com campos faltantes retorna 422
+- Request com valores inválidos retorna 422 com mensagem clara
+- Request válido retorna 200/201
 
 ---
 
-## 15. Referências
+#### 2.7 Error handling padronizado
+**Critérios de aceite:**
+- [ ] Exception handler global para `HTTPException`
+- [ ] Logger estruturado em JSON
+- [ ] Erros de IA logados com código e mensagem
+- [ ] Stack trace apenas em modo debug
+- [ ] Respostas de erro consistentes
 
-- [WCAG 2.1 Guidelines](https://www.w3.org/TR/WCAG21/)
-- [OpenAI API Reference](https://platform.openai.com/docs/api-reference)
-- [FastAPI Documentation](https://fastapi.tiangolo.com/)
-- [Next.js Documentation](https://nextjs.org/docs)
-- [shadcn/ui](https://ui.shadcn.com/)
-- [Zod](https://zod.dev/)
-- [Tailwind CSS](https://tailwindcss.com/)
-- [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/)
-- [Conventional Commits](https://www.conventionalcommits.org/pt-br/v1.0.0/)
+**Exemplo:**
+```python
+from fastapi import FastAPI, HTTPException
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.responses import JSONResponse
+import logging
+
+logger = logging.getLogger(__name__)
+
+app = FastAPI()
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request, exc):
+    logger.warning(f"HTTP error: {exc.status_code} - {exc.detail}")
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "detail": exc.detail,
+            "type": "http_error",
+            "status_code": exc.status_code
+        }
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    logger.warning(f"Validation error: {exc.errors()}")
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": exc.errors(),
+            "type": "validation_error",
+            "status_code": 422
+        }
+    )
+```
+
+**Testes de aceite:**
+- Erro 404 retorna JSON com `detail` e `type`
+- Erro 422 retorna lista de erros detalhados
+- Logs são estruturados em JSON
 
 ---
 
-**Documento criado por:** Gabriel (OmniRoute)  
-**Baseado em:** Anotações de design_system/docs/  
-**Versão:** 3.0
+#### 2.8 CORS + middleware
+**Critérios de aceite:**
+- [ ] `CORSMiddleware` permite apenas `localhost:7000`
+- [ ] Headers seguros configurados
+- [ ] Middleware de logging de requests
+- [ ] Timeout configurado (30s)
+
+**Implementação:**
+```python
+from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:7000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+
+**Testes de aceite:**
+- Request de `localhost:7000` tem `Access-Control-Allow-Origin: http://localhost:7000`
+- Request de outro origin é rejeitado
+- Rate limiting funciona (100 requests/minute)
+
+---
+
+### 🔵 P3 — Frontend Core
+**Horas estimadas:** ~120h | **Dependências:** P1 | **Risco:** Baixo
+
+> **Objetivo:** Implementar a interface do usuário com formulários, componentes UI e navegação.
+
+#### 3.1 Página inicial (landing)
+**Critérios de aceite:**
+- [ ] Hero section com headline e CTA
+- [ ] Features highlights (3 cards)
+- [ ] Footer com links
+- [ ] Responsivo (mobile-first)
+- [ ] Acessibilidade (ARIA labels, contraste)
+
+#### 3.2 Formulário de branding
+**Critérios de aceite:**
+- [ ] 3 passos com progress bar
+- [ ] Validação em tempo real
+- [ ] Preview ao vivo das escolhas
+- [ ] Botão voltar/próximo
+
+#### 3.3 Display de resultados
+**Critérios de aceite:**
+- [ ] Paleta de cores com hex codes
+- [ ] Escala tipográfica visual
+- [ ] Botões de exportação
+
+#### 3.4 Componentes UI básicos
+**Critérios de aceite:**
+- [ ] Button: primary, secondary, ghost
+- [ ] Input + Label + Error message
+- [ ] Card: info, success, warning, error
+- [ ] Modal genérico
+
+#### 3.5 Validação de input
+**Critérios de aceite:**
+- [ ] Zod schemas no client
+- [ ] Erros em tempo real
+- [ ] Feedback visual (bordas vermelhas)
+
+#### 3.6 Cliente API
+**Critérios de aceite:**
+- [ ] `lib/api.ts` com funções typed
+- [ ] Error handling com retry
+- [ ] Types gerados dos schemas
+
+#### 3.7 Navegação
+**Critérios de aceite:**
+- [ ] Rotas: `/`, `/brand`, `/design-system`, `/export`
+- [ ] Link components
+- [ ] Active state
+
+#### 3.8 Layout base
+**Critérios de aceite:**
+- [ ] Navbar responsivo
+- [ ] Footer
+- [ ] Theme provider (dark/light)
+- [ ] Transições suaves
+
+---
+
+### 🟣 P4 — Integração IA
+**Horas estimadas:** ~200h | **Dependências:** P2, P3 | **Risco:** Médio
+
+> **Objetivo:** Integrar agentes de IA para gerar branding, paleta e tipografia.
+
+#### 4.1 Cliente OpenAI compatible
+**Critérios de aceite:**
+- [ ] Suporta OpenAI, Anthropic, Ollama
+- [ ] Configuração BYOK
+- [ ] Timeout de 30s
+- [ ] Retry 3x com backoff
+
+#### 4.2 Agente de branding
+**Critérios de aceite:**
+- [ ] System prompt otimizado
+- [ ] Output JSON estruturado
+- [ ] Validação do response
+- [ ] Explicação das escolhas
+
+#### 4.3 Agente de paleta
+**Critérios de aceite:**
+- [ ] Gera 6 cores (primary, secondary, accent, neutral, light, dark)
+- [ ] Calcula contraste WCAG
+- [ ] Sugere ajustes se falhar
+
+#### 4.4 Agente de tipografia
+**Critérios de aceite:**
+- [ ] Seleciona 3 fontes (heading, body, mono)
+- [ ] Valida font pairing
+- [ ] Escala modular 1.25
+
+#### 4.5 RAG local
+**Critérios de aceite:**
+- [ ] Regras em `.md` por categoria
+- [ ] Busca keyword-based
+- [ ] Contexto injetado no prompt
+
+#### 4.6 Retry logic
+**Critérios de aceite:**
+- [ ] Timeout 30s
+- [ ] Retry 3x exponencial
+- [ ] Fall back para modelo padrão
+
+#### 4.7 Logging estruturado
+**Critérios de aceite:**
+- [ ] Log de requests/responses
+- [ ] Tempo de resposta
+- [ ] Erros da API (4xx/5xx)
+
+---
+
+### 🟠 P5 — Validação & UX
+**Horas estimadas:** ~80h | **Dependências:** P4 | **Risco:** Baixo
+
+> **Objetivo:** Implementar validações WCAG e indicadores visuais.
+
+#### 5.1 Validador WCAG
+**Critérios de aceite:**
+- [ ] Contraste 4.5:1 (AA), 7:1 (AAA)
+- [ ] Simulação de daltonismo
+- [ ] Feedback visual (cores)
+
+#### 5.2 Indicadores visuais
+**Critérios de aceite:**
+- [ ] Farol verde/amarelo/vermelho
+- [ ] Tooltip explicativo
+- [ ] Posição inline
+
+#### 5.3 Tooltips
+**Critérios de aceite:**
+- [ ] Help text em cada campo
+- [ ] Explicação do "porquê"
+- [ ] Links para docs
+
+#### 5.4 Modo simples/avançado
+**Critérios de aceite:**
+- [ ] Toggle no header
+- [ ] Simples: defaults otimizados
+- [ ] Avançado: controle total
+
+#### 5.5 Feedback em tempo real
+**Critérios de aceite:**
+- [ ] Validação após cada input
+- [ ] Loading states
+- [ ] Erros amigáveis
+
+---
+
+### 🟤 P6 — Design System Viewer
+**Horas estimadas:** ~100h | **Dependências:** P5 | **Risco:** Baixo
+
+> **Objetivo:** Visualizador interativo do design system.
+
+#### 6.1 Visualização de tokens
+**Critérios de aceite:**
+- [ ] JSON preview
+- [ ] CSS Variables preview
+- [ ] Tailwind Config preview
+
+#### 6.2 Preview de componentes
+**Critérios de aceite:**
+- [ ] Botões (todos variants)
+- [ ] Cards (todos tipos)
+- [ ] Forms (todos inputs)
+- [ ] Navbar, Footer
+
+#### 6.3 Toggle dark/light
+**Critérios de aceite:**
+- [ ] Theme provider
+- [ ] Persistência localStorage
+- [ ] Transições suaves
+
+#### 6.4 Exportação
+**Critérios de aceite:**
+- [ ] JSON (Design Tokens)
+- [ ] CSS Variables
+- [ ] Tailwind Config
+- [ ] Style Dictionary
+
+#### 6.5 Storybook
+**Critérios de aceite:**
+- [ ] Documentação de componentes
+- [ ] Stories para cada variant
+- [ ] Controls para testar props
+
+---
+
+### 🔴 P7 — Features Avançadas
+**Horas estimadas:** ~160h | **Dependências:** P6 | **Risco:** Médio
+
+> **Objetivo:** Features avançadas e diferenciais.
+
+#### 7.1 Vetorização PNG→SVG
+**Critérios de aceite:**
+- [ ] Integração potrace/vtracer
+- [ ] Upload de logo
+- [ ] Export SVG
+- [ ] Nota: resultado é "melhor esforço"
+
+#### 7.2 Logo tipográfica
+**Critérios de aceite:**
+- [ ] Texto + fonte
+- [ ] Variações (cor, fundo)
+- [ ] Export SVG/PNG
+
+#### 7.3 Banco de paletas
+**Critérios de aceite:**
+- [ ] CRUD de paletas
+- [ ] Rating e comentários
+- [ ] Filtros por cor/segmento
+
+#### 7.4 Banco de fontes
+**Critérios de aceite:**
+- [ ] Font pairing sugerido
+- [ ] Preview ao vivo
+- [ ] Rating e comentários
+
+#### 7.5 Templates
+**Critérios de aceite:**
+- [ ] Templates prontos
+- [ ] Customização via UI
+- [ ] Exportação completa
+
+---
+
+### ⚫ P8 — Comunidade & Ecossistema
+**Horas estimadas:** ~120h | **Dependências:** P7 | **Risco:** Médio
+
+> **Objetivo:** Recursos colaborativos.
+
+#### 8.1 Marketplace
+**Critérios de aceite:**
+- [ ] Listagem de templates
+- [ ] Sistema de ratings
+- [ ] Compra/venda (Stripe)
+
+#### 8.2 Avaliações
+**Critérios de aceite:**
+- [ ] Notas 1-5 estrelas
+- [ ] Comentários
+- [ ] Moderação
+
+#### 8.3 Compartilhamento
+**Critérios de aceite:**
+- [ ] Galeria pública
+- [ ] Feed recente
+- [ ] Filtros
+
+#### 8.4 Versionamento
+**Critérios de aceite:**
+- [ ] Múltiplas versões
+- [ ] Diff entre versões
+- [ ] Rollback
+
+---
+
+### 🔘 P9 — Deploy & Infra
+**Horas estimadas:** ~60h | **Dependências:** P8 | **Risco:** Baixo
+
+> **Objetivo:** Colocar em produção.
+
+#### 9.1 Versão hospedada
+**Critérios de aceite:**
+- [ ] Vercel (frontend)
+- [ ] Railway/Render (backend)
+- [ ] Banco na nuvem (opcional)
+
+#### 9.2 Monitoramento
+**Critérios de aceite:**
+- [ ] Logs (Loki)
+- [ ] Métricas (Prometheus)
+- [ ] Alertas (Alertmanager)
+
+#### 9.3 Backup
+**Critérios de aceite:**
+- [ ] Script semanal
+- [ ] Task Scheduler
+- [ ] Armazenamento local/cloud
+
+#### 9.4 Restore
+**Critérios de aceite:**
+- [ ] Documentação passo a passo
+- [ ] Script de restore
+- [ ] Validação de integridade
+
+---
+
+### 🔷 P10 — Monetização
+**Horas estimadas:** ~80h | **Dependências:** P9 | **Risco:** Médio
+
+> **Objetivo:** Recursos pagos.
+
+#### 10.1 Templates premium
+**Critérios de aceite:**
+- [ ] Templates pagos
+- [ ] Licenças
+- [ ] Downloads pós-pagamento
+
+#### 10.2 Exportação avançada
+**Critérios de aceite:**
+- [ ] Sketch, Figma, Adobe XD
+- [ ] React/Vue components
+- [ ] CSS/SCSS modules
+
+#### 10.3 Suporte enterprise
+**Critérios de aceite:**
+- [ ] Consultoria
+- [ ] Implementação dedicada
+- [ ] SLA
+
+#### 10.4 API paga
+**Critérios de aceite:**
+- [ ] Preço por request
+- [ ] Rate limiting
+- [ ] Dashboard de uso
+
+---
+
+### 🔶 P11 — Integrações
+**Horas estimadas:** ~100h | **Dependências:** P10 | **Risco:** Médio
+
+> **Objetivo:** Plugins e exportações.
+
+#### 11.1 Plugin Figma
+**Critérios de aceite:**
+- [ ] Importar tokens
+- [ ] Criar estilos
+- [ ] Sincronização bidirecional
+
+#### 11.2 Plugin VS Code
+**Critérios de aceite:**
+- [ ] Snippets de tokens
+- [ ] Preview em tempo real
+- [ ] Validação WCAG
+
+#### 11.3 Export React/Vue
+**Critérios de aceite:**
+- [ ] Components prontos
+- [ ] TypeScript types
+- [ ] Storybook integrado
+
+#### 11.4 Export CSS/SCSS
+**Critérios de aceite:**
+- [ ] Variables CSS
+- [ ] Tailwind config
+- [ ] Style Dictionary
