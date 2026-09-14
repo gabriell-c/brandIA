@@ -2,7 +2,7 @@
 OmniRoute Design System - Pydantic Schemas
 """
 from pydantic import BaseModel, Field, HttpUrl, field_validator
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 import re
 
