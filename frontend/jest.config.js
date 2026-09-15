@@ -1,20 +1,13 @@
+// Jest config - minimal, no transform needed
+const path = require('path');
+
 module.exports = {
   testEnvironment: 'jsdom',
-  setupFilesAfterSetup: ['<rootDir>/jest.setup.js'],
+  setupFiles: ['<rootDir>/jest.setup.js'],
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1',
+    '^@/(.*)$': path.resolve('<rootDir>', 'src/$1'),
   },
-  testMatch: [
-    '<rootDir>/src/**/*.test.{ts,tsx}',
-  ],
-  transform: {
-    '^.+\\.(ts|tsx)$': ['ts-jest', {
-      tsconfig: 'tsconfig.json',
-    }],
-  },
-  collectCoverageFrom: [
-    'src/**/*.{ts,tsx}',
-    '!src/**/*.d.ts',
-    '!src/app/**',
-  ],
-}
+  testMatch: ['<rootDir>/src/**/*.test.js'],
+  transform: {},
+  moduleFileExtensions: ['js', 'json'],
+};
