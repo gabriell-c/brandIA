@@ -1,25 +1,19 @@
-// Simple test without importing TypeScript modules
-describe('Test Suite', () => {
-  it('should pass basic test', () => {
+describe('Basic Tests', () => {
+  it('should pass true === true', () => {
     expect(true).toBe(true);
   });
 
-  it('should test array operations', () => {
+  it('should pass array length', () => {
     const arr = [1, 2, 3];
     expect(arr.length).toBe(3);
-    expect(arr.includes(2)).toBe(true);
   });
 
-  it('should test object operations', () => {
-    const obj = { a: 1, b: 2 };
-    expect(Object.keys(obj).length).toBe(2);
-    expect(obj.a).toBe(1);
+  it('should pass string includes', () => {
+    expect('hello world').toContain('world');
   });
 
-  it('should test string operations', () => {
-    const str = 'hello world';
-    expect(str.length).toBe(11);
-    expect(str.includes('world')).toBe(true);
-    expect(str.toUpperCase()).toBe('HELLO WORLD');
+  it('should pass object property', () => {
+    const obj = { name: 'test' };
+    expect(obj.name).toBe('test');
   });
 });

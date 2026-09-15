@@ -1,13 +1,14 @@
-// Jest config - minimal, no transform needed
 const path = require('path');
 
 module.exports = {
   testEnvironment: 'jsdom',
   setupFiles: ['<rootDir>/jest.setup.js'],
   moduleNameMapper: {
-    '^@/(.*)$': path.resolve('<rootDir>', 'src/$1'),
+    '^@/(.*)$': '<rootDir>/src/$1',
   },
-  testMatch: ['<rootDir>/src/**/*.test.js'],
+  testMatch: [
+    '<rootDir>/src/**/*.test.{js,jsx}',
+  ],
   transform: {},
-  moduleFileExtensions: ['js', 'json'],
+  moduleFileExtensions: ['js', 'jsx', 'json'],
 };
