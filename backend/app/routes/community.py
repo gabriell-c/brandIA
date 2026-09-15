@@ -1,18 +1,14 @@
 """
 Community Routes - Marketplace, Reviews, Designs, User Profiles
 """
-from fastapi import APIRouter, Depends, HTTPException
-from typing import Dict, Any, List, Optional
 import logging
+from typing import Any
 
-from app.schemas import (
-    CommentCreate, CommentResponse,
-    FontPairingCreate, FontPairingResponse,
-    TemplateResponse
-)
-from app.services.marketplace import get_marketplace, MarketplaceService, LicenseType
-from app.services.community import get_community, CommunityService, UserRole
-from app.services.versioning import get_versioning_service, VersionService
+from fastapi import APIRouter, HTTPException
+
+from app.services.community import get_community
+from app.services.marketplace import get_marketplace
+from app.services.versioning import get_versioning_service
 
 logger = logging.getLogger(__name__)
 
@@ -23,20 +19,20 @@ router = APIRouter()
 @router.get("/marketplace/templates")
 async def list_marketplace_templates(
     status: str = "active",
-    segment: Optional[str] = None,
-    tags: Optional[str] = None,
-    min_price: Optional[int] = None,
-    max_price: Optional[int] = None,
-    search: Optional[str] = None
+    segment: str | None = None,
+    tags: str | None = None,
+    min_price: int | None = None,
+    max_price: int | None = None,
+    search: str | None = None
 ):
     """List marketplace templates."""
     marketplace = get_marketplace()
-    
+
     status_enum = None
     if status:
         from app.services.marketplace import TemplateStatus
         status_enum = TemplateStatus(status)
-    
+
     tag_list = tags.split(',') if tags else None
     templates = marketplace.list_templates(
         status=status_enum,
@@ -46,7 +42,7 @@ async def list_marketplace_templates(
         max_price=max_price,
         search=search
     )
-    
+
     return {
         "data": [t.to_dict() for t in templates],
         "segments": marketplace.get_segments(),
@@ -59,10 +55,10 @@ async def get_marketplace_template(template_id: str):
     """Get a specific marketplace template."""
     marketplace = get_marketplace()
     template = marketplace.get_template(template_id)
-    
+
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
-    
+
     return template.to_dict()
 
 
@@ -75,7 +71,7 @@ async def create_checkout_session(
 ):
     """Create a Stripe checkout session for a template."""
     marketplace = get_marketplace()
-    
+
     try:
         session = marketplace.create_stripe_checkout_session(
             template_id=template_id,
@@ -99,15 +95,15 @@ async def get_user_purchases(user_id: str):
 # Community design endpoints
 @router.get("/community/designs")
 async def list_community_designs(
-    category: Optional[str] = None,
-    tags: Optional[str] = None,
-    search: Optional[str] = None,
+    category: str | None = None,
+    tags: str | None = None,
+    search: str | None = None,
     sort_by: str = "newest",
     limit: int = 20
 ):
     """List community shared designs."""
     community = get_community()
-    
+
     tag_list = tags.split(',') if tags else None
     designs = community.list_designs(
         category=category,
@@ -116,7 +112,7 @@ async def list_community_designs(
         sort_by=sort_by,
         limit=limit
     )
-    
+
     return {
         "data": [d.to_dict() for d in designs],
         "categories": community.get_categories(),
@@ -137,10 +133,10 @@ async def like_design(design_id: str, user_id: str):
     """Like a design."""
     community = get_community()
     success = community.like_design(design_id, user_id)
-    
+
     if not success:
         raise HTTPException(status_code=400, detail="Failed to like design")
-    
+
     return {"success": True}
 
 
@@ -155,11 +151,11 @@ async def view_design(design_id: str):
 # Design submission endpoint
 @router.post("/community/designs")
 async def submit_design(
-    request: Dict[str, Any]
+    request: dict[str, Any]
 ):
     """Submit a new design to community."""
     community = get_community()
-    
+
     design = community.create_design(
         title=request.get("title", ""),
         description=request.get("description", ""),
@@ -169,10 +165,10 @@ async def submit_design(
         category=request.get("category", "general"),
         tags=request.get("tags", [])
     )
-    
+
     if not design:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     return design.to_dict()
 
 
@@ -186,10 +182,10 @@ async def get_reviews(content_type: str, content_id: str):
 
 
 @router.post("/reviews")
-async def create_review(request: Dict[str, Any]):
+async def create_review(request: dict[str, Any]):
     """Create a new review."""
     community = get_community()
-    
+
     review = community.create_review(
         content_type=request.get("content_type", ""),
         content_id=request.get("content_id", ""),
@@ -197,23 +193,23 @@ async def create_review(request: Dict[str, Any]):
         rating=request.get("rating", 5),
         comment=request.get("comment", "")
     )
-    
+
     if not review:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     return review.to_dict()
 
 
 # User profile endpoints
 @router.get("/community/users")
-async def list_users(role: Optional[str] = None):
+async def list_users(role: str | None = None):
     """List community users."""
     community = get_community()
     users = community.get_all_users()
-    
+
     if role:
         users = [u for u in users if u.role.value == role]
-    
+
     return [u.to_dict() for u in users]
 
 
@@ -222,10 +218,10 @@ async def get_user_profile(user_id: str):
     """Get user profile."""
     community = get_community()
     user = community.get_user(user_id)
-    
+
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     return user.to_dict()
 
 
@@ -255,21 +251,21 @@ async def get_current_version(project_id: str):
     """Get current active version."""
     versioning = get_versioning_service()
     current = versioning.get_current_version(project_id)
-    
+
     if not current:
         raise HTTPException(status_code=404, detail="No current version found")
-    
+
     return current.to_dict()
 
 
 @router.post("/versions/project/{project_id}")
 async def create_version(
     project_id: str,
-    request: Dict[str, Any]
+    request: dict[str, Any]
 ):
     """Create a new version."""
     versioning = get_versioning_service()
-    
+
     version = versioning.create_version(
         project_id=project_id,
         brand_id=request.get("brand_id", ""),
@@ -280,43 +276,43 @@ async def create_version(
         notes=request.get("notes", ""),
         created_by=request.get("created_by", "")
     )
-    
+
     return version.to_dict()
 
 
 @router.post("/versions/diff")
 async def compare_versions(
-    request: Dict[str, str]
+    request: dict[str, str]
 ):
     """Compare two versions."""
     versioning = get_versioning_service()
-    
+
     diff = versioning.create_diff(
         request.get("version1_id", ""),
         request.get("version2_id", "")
     )
-    
+
     if not diff:
         raise HTTPException(status_code=404, detail="One or both versions not found")
-    
+
     return diff
 
 
 @router.post("/versions/project/{project_id}/rollback")
 async def rollback_version(
     project_id: str,
-    request: Dict[str, str]
+    request: dict[str, str]
 ):
     """Rollback to a previous version."""
     versioning = get_versioning_service()
-    
+
     new_version = versioning.rollback_to_version(
         project_id=project_id,
         version_id=request.get("version_id", ""),
         new_name=request.get("new_name")
     )
-    
+
     if not new_version:
         raise HTTPException(status_code=404, detail="Version not found")
-    
+
     return new_version.to_dict()

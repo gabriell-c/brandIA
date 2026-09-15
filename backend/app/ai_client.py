@@ -1,13 +1,12 @@
 """
 OpenAI-compatible AI client supporting multiple providers.
 """
-import httpx
 import asyncio
 import logging
-import json
-from typing import Dict, Any, Optional, AsyncGenerator
 from dataclasses import dataclass
 from datetime import datetime
+
+import httpx
 
 logger = logging.getLogger(__name__)
 
@@ -21,21 +20,21 @@ class AIConfig:
     max_retries: int = 3
 
 class AIResponse:
-    def __init__(self, success: bool, data: Optional[Dict] = None, error: Optional[str] = None):
+    def __init__(self, success: bool, data: dict | None = None, error: str | None = None):
         self.success = success
         self.data = data
         self.error = error
         self.timestamp = datetime.utcnow().isoformat()
 
 class AIChatResponse(AIResponse):
-    def __init__(self, success: bool, message: Optional[str] = None, **kwargs):
+    def __init__(self, success: bool, message: str | None = None, **kwargs):
         super().__init__(success, **kwargs)
         self.message = message
-        self.usage: Optional[Dict] = None
+        self.usage: dict | None = None
 
 class OpenAIClient:
     """Client for OpenAI-compatible APIs."""
-    
+
     def __init__(self, config: AIConfig):
         self.config = config
         self.client = httpx.AsyncClient(
@@ -46,8 +45,8 @@ class OpenAIClient:
                 "Content-Type": "application/json"
             }
         )
-    
-    async def chat(self, messages: list, response_format: Optional[Dict] = None) -> AIChatResponse:
+
+    async def chat(self, messages: list, response_format: dict | None = None) -> AIChatResponse:
         """Send chat completion request."""
         try:
             payload = {
@@ -56,13 +55,13 @@ class OpenAIClient:
             }
             if response_format:
                 payload["response_format"] = response_format
-            
+
             response = await self.client.post("/chat/completions", json=payload)
             response.raise_for_status()
-            
+
             data = response.json()
             message = data["choices"][0]["message"]
-            
+
             return AIChatResponse(
                 success=True,
                 message=message.get("content"),
@@ -79,7 +78,7 @@ class OpenAIClient:
 
 class AnthropicClient:
     """Client for Anthropic Claude API."""
-    
+
     def __init__(self, config: AIConfig):
         self.config = config
         self.client = httpx.AsyncClient(
@@ -91,8 +90,8 @@ class AnthropicClient:
                 "Content-Type": "application/json"
             }
         )
-    
-    async def chat(self, messages: list, response_format: Optional[Dict] = None) -> AIChatResponse:
+
+    async def chat(self, messages: list, response_format: dict | None = None) -> AIChatResponse:
         """Send Anthropic completion request."""
         try:
             # Convert OpenAI format to Anthropic format
@@ -106,7 +105,7 @@ class AnthropicClient:
                         "role": msg["role"],
                         "content": msg["content"]
                     })
-            
+
             payload = {
                 "model": self.config.model,
                 "messages": user_messages,
@@ -114,13 +113,13 @@ class AnthropicClient:
             }
             if system_msg:
                 payload["system"] = system_msg
-            
+
             response = await self.client.post("/v1/messages", json=payload)
             response.raise_for_status()
-            
+
             data = response.json()
             content = data["content"][0]["text"] if data.get("content") else ""
-            
+
             return AIChatResponse(
                 success=True,
                 message=content,
@@ -137,32 +136,29 @@ class AnthropicClient:
 
 class OllamaClient:
     """Client for local Ollama API."""
-    
+
     def __init__(self, config: AIConfig):
         self.config = config
         self.client = httpx.AsyncClient(
             base_url=config.base_url,
             timeout=httpx.Timeout(config.timeout)
         )
-    
-    async def chat(self, messages: list, response_format: Optional[Dict] = None) -> AIChatResponse:
+
+    async def chat(self, messages: list, response_format: dict | None = None) -> AIChatResponse:
         """Send Ollama completion request."""
         try:
-            # Ollama expects messages in specific format
-            prompt = messages[-1]["content"] if messages else ""
-            
             payload = {
                 "model": self.config.model,
                 "messages": messages,
                 "stream": False,
             }
-            
+
             response = await self.client.post("/api/chat", json=payload)
             response.raise_for_status()
-            
+
             data = response.json()
             message = data.get("message", {}).get("content", "")
-            
+
             return AIChatResponse(
                 success=True,
                 message=message
@@ -178,13 +174,13 @@ class OllamaClient:
 
 class AIProvider:
     """Factory class for creating AI clients."""
-    
+
     _clients = {
         "openai": OpenAIClient,
         "anthropic": AnthropicClient,
         "ollama": OllamaClient,
     }
-    
+
     @classmethod
     def create(cls, config: AIConfig):
         client_class = cls._clients.get(config.provider)
@@ -207,13 +203,13 @@ def get_ai_client(config: AIConfig):
 async def chat_completion(
     messages: list,
     config: AIConfig,
-    response_format: Optional[Dict] = None,
+    response_format: dict | None = None,
     max_retries: int = 3
 ) -> AIChatResponse:
     """Send chat completion with retry logic."""
     client = get_ai_client(config)
     last_error = None
-    
+
     for attempt in range(max_retries):
         try:
             response = await client.chat(messages, response_format)
@@ -224,11 +220,11 @@ async def chat_completion(
         except Exception as e:
             last_error = str(e)
             logger.warning(f"Attempt {attempt + 1}/{max_retries} error: {last_error}")
-        
+
         # Exponential backoff
         if attempt < max_retries - 1:
             wait_time = 2 ** attempt
             logger.info(f"Retrying in {wait_time}s...")
             await asyncio.sleep(wait_time)
-    
+
     return AIChatResponse(success=False, error=f"All {max_retries} attempts failed: {last_error}")

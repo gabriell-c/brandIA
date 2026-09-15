@@ -2,10 +2,8 @@
 Palette database - Community-contributed color palettes
 """
 import logging
-from typing import Dict, Any, Optional, List
 from datetime import datetime
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +25,7 @@ class Comment:
         self.content = content
         self.created_at = created_at or datetime.utcnow()
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "id": self.id,
@@ -40,16 +38,16 @@ class Comment:
 
 class Palette:
     """Represents a community palette."""
-    
+
     def __init__(
         self,
         id: int,
         name: str,
-        colors: Dict[str, str],
+        colors: dict[str, str],
         description: str,
         author: str,
         category: str,
-        tags: List[str],
+        tags: list[str],
         rating: float = 0.0,
         votes: int = 0,
         created_at: datetime = None,
@@ -66,8 +64,8 @@ class Palette:
         self.votes = votes
         self.created_at = created_at or datetime.utcnow()
         self.updated_at = updated_at or datetime.utcnow()
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "id": self.id,
@@ -82,7 +80,7 @@ class Palette:
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat()
         }
-    
+
     def add_vote(self, score: int):
         """Add a vote to the palette."""
         self.votes += 1
@@ -96,7 +94,7 @@ class Palette:
         self.comments.append(comment)
         self.updated_at = datetime.utcnow()
 
-    def get_comments(self) -> List[Comment]:
+    def get_comments(self) -> list[Comment]:
         """Get all comments for this palette."""
         if not hasattr(self, 'comments'):
             self.comments = []
@@ -105,12 +103,12 @@ class Palette:
 
 class PaletteDatabase:
     """In-memory palette database with community contributions."""
-    
+
     def __init__(self):
-        self.palettes: Dict[int, Palette] = {}
+        self.palettes: dict[int, Palette] = {}
         self._next_id = 1
         self._init_sample_palettes()
-    
+
     def _init_sample_palettes(self):
         """Initialize with sample palettes."""
         samples = [
@@ -175,7 +173,7 @@ class PaletteDatabase:
                 "tags": ["monochrome", "professional", "clean", "minimal"]
             }
         ]
-        
+
         for sample in samples:
             self.create(
                 name=sample["name"],
@@ -185,15 +183,15 @@ class PaletteDatabase:
                 category=sample["category"],
                 tags=sample["tags"]
             )
-    
+
     def create(
         self,
         name: str,
-        colors: Dict[str, str],
+        colors: dict[str, str],
         description: str,
         author: str,
         category: str,
-        tags: List[str] = None
+        tags: list[str] = None
     ) -> Palette:
         """Create a new palette."""
         palette = Palette(
@@ -208,42 +206,42 @@ class PaletteDatabase:
         self.palettes[self._next_id] = palette
         self._next_id += 1
         return palette
-    
-    def get_all(self, category: str = None, tags: List[str] = None, search: str = None) -> List[Palette]:
+
+    def get_all(self, category: str = None, tags: list[str] = None, search: str = None) -> list[Palette]:
         """Get all palettes with optional filters."""
         results = list(self.palettes.values())
-        
+
         if category:
             results = [p for p in results if p.category == category]
-        
+
         if tags:
             results = [p for p in results if any(tag in p.tags for tag in tags)]
-        
+
         if search:
             search_lower = search.lower()
-            results = [p for p in results if 
+            results = [p for p in results if
                       search_lower in p.name.lower() or
                       search_lower in p.description.lower() or
                       any(search_lower in tag.lower() for tag in p.tags)]
-        
+
         return sorted(results, key=lambda x: x.rating, reverse=True)
-    
-    def get_by_id(self, palette_id: int) -> Optional[Palette]:
+
+    def get_by_id(self, palette_id: int) -> Palette | None:
         """Get palette by ID."""
         return self.palettes.get(palette_id)
-    
-    def vote(self, palette_id: int, score: int) -> Optional[Palette]:
+
+    def vote(self, palette_id: int, score: int) -> Palette | None:
         """Vote for a palette (1-5 stars)."""
         palette = self.palettes.get(palette_id)
         if palette:
             palette.add_vote(score)
         return palette
-    
-    def get_categories(self) -> List[str]:
+
+    def get_categories(self) -> list[str]:
         """Get all available categories."""
         return list(set(p.category for p in self.palettes.values()))
-    
-    def get_tags(self) -> List[str]:
+
+    def get_tags(self) -> list[str]:
         """Get all available tags."""
         all_tags = set()
         for palette in self.palettes.values():
@@ -255,7 +253,7 @@ class PaletteDatabase:
         palette_id: int,
         author: str,
         content: str
-    ) -> Optional[Comment]:
+    ) -> Comment | None:
         """Create a new comment on a palette."""
         palette = self.palettes.get(palette_id)
         if not palette:
@@ -270,7 +268,7 @@ class PaletteDatabase:
         palette.add_comment(comment)
         return comment
 
-    def get_comments(self, palette_id: int) -> List[Comment]:
+    def get_comments(self, palette_id: int) -> list[Comment]:
         """Get all comments for a palette."""
         palette = self.palettes.get(palette_id)
         if not palette:

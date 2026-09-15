@@ -2,23 +2,23 @@
 Template export service - Complete token export for templates
 """
 import logging
-from typing import Dict, Any, List
 from datetime import datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
 class TemplateExporter:
     """Service for exporting template tokens in various formats."""
-    
+
     def __init__(self):
         self.formats = ['json', 'css', 'tailwind', 'styledictionary']
-    
+
     def export(
         self,
-        template: Dict[str, Any],
+        template: dict[str, Any],
         format: str = 'json'
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Export template in specified format."""
         exporters = {
             'json': self._export_json,
@@ -26,11 +26,11 @@ class TemplateExporter:
             'tailwind': self._export_tailwind,
             'styledictionary': self._export_style_dictionary
         }
-        
+
         exporter = exporters.get(format, exporters['json'])
         return exporter(template)
-    
-    def _export_json(self, template: Dict[str, Any]) -> Dict[str, Any]:
+
+    def _export_json(self, template: dict[str, Any]) -> dict[str, Any]:
         """Export as JSON."""
         return {
             "name": template["name"],
@@ -44,12 +44,12 @@ class TemplateExporter:
             },
             "exported_at": datetime.utcnow().isoformat()
         }
-    
-    def _export_css(self, template: Dict[str, Any]) -> str:
+
+    def _export_css(self, template: dict[str, Any]) -> str:
         """Export as CSS variables."""
         palette = template["palette"]
         typography = template["typography"]
-        
+
         css = f"""/* {template['name']} - Design Tokens */
 :root {{
   /* Colors */
@@ -75,12 +75,12 @@ class TemplateExporter:
 }}
 """
         return css
-    
-    def _export_tailwind(self, template: Dict[str, Any]) -> str:
+
+    def _export_tailwind(self, template: dict[str, Any]) -> str:
         """Export as Tailwind config."""
         palette = template["palette"]
         typography = template["typography"]
-        
+
         config = f"""// tailwind.config.js
 module.exports = {{
   theme: {{
@@ -111,12 +111,12 @@ module.exports = {{
 }}
 """
         return config
-    
-    def _export_style_dictionary(self, template: Dict[str, Any]) -> str:
+
+    def _export_style_dictionary(self, template: dict[str, Any]) -> str:
         """Export as Style Dictionary format."""
         palette = template["palette"]
         typography = template["typography"]
-        
+
         sd = f"""// design-tokens.json
 {{
   "version": 2,
@@ -142,8 +142,8 @@ module.exports = {{
 }}
 """
         return sd
-    
-    def export_all_formats(self, template: Dict[str, Any]) -> Dict[str, str]:
+
+    def export_all_formats(self, template: dict[str, Any]) -> dict[str, str]:
         """Export template in all supported formats."""
         return {
             format: self.export(template, format)

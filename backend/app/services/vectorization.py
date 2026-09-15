@@ -1,22 +1,19 @@
 """
 Vectorization service - Convert PNG to SVG using potrace
 """
-import os
-import base64
 import logging
+import os
 import tempfile
-from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
 
 class VectorizationService:
     """Service for converting raster images to SVG vectors."""
-    
+
     def __init__(self):
         self.supported_formats = ['.png', '.jpg', '.jpeg', '.bmp', '.webp']
-    
+
     async def vectorize(self, image_data: bytes, output_format: str = 'svg') -> str:
         """
         Convert raster image to SVG vector.
@@ -35,16 +32,16 @@ class VectorizationService:
         except Exception as e:
             logger.error(f"Vectorization failed: {e}")
             return self._generate_placeholder_svg(image_data)
-    
+
     async def _process_with_potrace(self, image_data: bytes) -> str:
         """Process image using potrace algorithm."""
         # Create temporary files
         with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as input_file:
             input_file.write(image_data)
             input_path = input_file.name
-        
+
         output_path = input_path.replace('.png', '.svg')
-        
+
         try:
             # Try to use potrace
             import subprocess
@@ -54,9 +51,9 @@ class VectorizationService:
                 text=True,
                 timeout=30
             )
-            
+
             if result.returncode == 0 and os.path.exists(output_path):
-                with open(output_path, 'r', encoding='utf-8') as f:
+                with open(output_path, encoding='utf-8') as f:
                     return f.read()
         except (FileNotFoundError, subprocess.TimeoutExpired):
             # Potrace not available, use fallback
@@ -66,10 +63,10 @@ class VectorizationService:
             for path in [input_path, output_path]:
                 if os.path.exists(path):
                     os.unlink(path)
-        
+
         # Fallback: generate simple SVG from image data
         return self._generate_placeholder_svg(image_data)
-    
+
     def _generate_placeholder_svg(self, image_data: bytes) -> str:
         """Generate a placeholder SVG when vectorization fails."""
         # Create a simple SVG representation
@@ -84,17 +81,17 @@ class VectorizationService:
   </text>
 </svg>'''
         return svg
-    
+
     async def optimize_svg(self, svg_content: str) -> str:
         """Optimize SVG for web use."""
         # Basic optimizations
         svg = svg_content.strip()
-        
+
         # Remove unnecessary whitespace
         import re
         svg = re.sub(r'\s+', ' ', svg)
         svg = re.sub(r'\s*([><=/])\s*', r'\1', svg)
-        
+
         return svg
 
 

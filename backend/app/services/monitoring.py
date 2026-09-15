@@ -1,15 +1,16 @@
 """
 Monitoring service - Prometheus metrics, health checks, and logging
 """
-import os
-import time
 import logging
-from typing import Dict, Any, Optional, Callable
-from functools import wraps
+import time
+from collections.abc import Callable
 from datetime import datetime
-from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
+from functools import wraps
+from typing import Any
+
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, generate_latest
 from starlette.requests import Request
-from starlette.responses import Response, PlainTextResponse
+from starlette.responses import Response
 
 logger = logging.getLogger(__name__)
 
@@ -58,12 +59,12 @@ ERROR_COUNT = Counter(
 
 class MonitoringService:
     """Service for application monitoring."""
-    
+
     def __init__(self):
         self.start_time = time.time()
         self.request_log = []
         self.error_log = []
-    
+
     def record_request(
         self,
         method: str,
@@ -77,12 +78,12 @@ class MonitoringService:
             endpoint=endpoint,
             status=str(status_code)
         ).inc()
-        
+
         REQUEST_LATENCY.labels(
             method=method,
             endpoint=endpoint
         ).observe(duration)
-        
+
         # Log request
         self.request_log.append({
             "timestamp": datetime.utcnow().isoformat(),
@@ -91,15 +92,15 @@ class MonitoringService:
             "status": status_code,
             "duration_ms": round(duration * 1000, 2)
         })
-        
+
         # Keep only last 1000 requests
         if len(self.request_log) > 1000:
             self.request_log = self.request_log[-1000:]
-    
+
     def record_db_query(self, query_type: str, duration: float):
         """Record database query metrics."""
         DB_QUERY_DURATION.labels(query_type=query_type).observe(duration)
-    
+
     def record_ai_request(
         self,
         provider: str,
@@ -112,31 +113,31 @@ class MonitoringService:
             provider=provider,
             operation=operation
         ).observe(duration)
-        
+
         AI_REQUEST_COUNT.labels(
             provider=provider,
             operation=operation,
             status="success" if success else "error"
         ).inc()
-    
+
     def record_error(self, error_type: str, endpoint: str):
         """Record error metrics."""
         ERROR_COUNT.labels(type=error_type, endpoint=endpoint).inc()
-        
+
         self.error_log.append({
             "timestamp": datetime.utcnow().isoformat(),
             "type": error_type,
             "endpoint": endpoint
         })
-        
+
         # Keep only last 500 errors
         if len(self.error_log) > 500:
             self.error_log = self.error_log[-500:]
-    
-    def get_health_status(self) -> Dict[str, Any]:
+
+    def get_health_status(self) -> dict[str, Any]:
         """Get application health status."""
         uptime = time.time() - self.start_time
-        
+
         return {
             "status": "healthy",
             "uptime_seconds": round(uptime, 2),
@@ -149,28 +150,28 @@ class MonitoringService:
                 "cache": "ok"
             }
         }
-    
+
     def get_metrics(self) -> str:
         """Get Prometheus metrics in text format."""
         return generate_latest().decode('utf-8')
-    
+
     def get_recent_requests(self, limit: int = 100) -> list:
         """Get recent request logs."""
         return self.request_log[-limit:]
-    
+
     def get_recent_errors(self, limit: int = 100) -> list:
         """Get recent error logs."""
         return self.error_log[-limit:]
-    
-    def get_stats_summary(self) -> Dict[str, Any]:
+
+    def get_stats_summary(self) -> dict[str, Any]:
         """Get statistics summary."""
         total_requests = len(self.request_log)
         total_errors = len(self.error_log)
-        
+
         avg_latency = 0
         if total_requests > 0:
             avg_latency = sum(r["duration_ms"] for r in self.request_log) / total_requests
-        
+
         return {
             "total_requests": total_requests,
             "total_errors": total_errors,
@@ -178,14 +179,14 @@ class MonitoringService:
             "avg_latency_ms": round(avg_latency, 2),
             "uptime_seconds": round(time.time() - self.start_time, 2)
         }
-    
+
     def _format_uptime(self, seconds: float) -> str:
         """Format uptime in human readable format."""
         days = int(seconds // 86400)
         hours = int((seconds % 86400) // 3600)
         minutes = int((seconds % 3600) // 60)
         secs = int(seconds % 60)
-        
+
         parts = []
         if days > 0:
             parts.append(f"{days}d")
@@ -194,7 +195,7 @@ class MonitoringService:
         if minutes > 0:
             parts.append(f"{minutes}m")
         parts.append(f"{secs}s")
-        
+
         return " ".join(parts)
 
 
@@ -203,30 +204,30 @@ def monitor_endpoint(monitoring_service: MonitoringService = None):
     """Decorator to monitor endpoint execution."""
     if monitoring_service is None:
         monitoring_service = get_monitoring_service()
-    
+
     def decorator(func: Callable):
         @wraps(func)
         async def wrapper(*args, **kwargs):
             start_time = time.time()
             endpoint = func.__name__
             method = "GET"  # Would need request object for actual method
-            
+
             try:
                 result = await func(*args, **kwargs)
                 duration = time.time() - start_time
-                
+
                 # Try to extract status code from result
                 status = 200
                 if hasattr(result, 'status_code'):
                     status = result.status_code
-                
+
                 monitoring_service.record_request(
                     method=method,
                     endpoint=endpoint,
                     status_code=status,
                     duration=duration
                 )
-                
+
                 return result
             except Exception as e:
                 duration = time.time() - start_time
@@ -241,7 +242,7 @@ def monitor_endpoint(monitoring_service: MonitoringService = None):
                     endpoint=endpoint
                 )
                 raise
-        
+
         return wrapper
     return decorator
 
@@ -251,18 +252,18 @@ async def monitoring_middleware(request: Request, call_next):
     """Middleware to monitor all requests."""
     monitoring = get_monitoring_service()
     start_time = time.time()
-    
+
     try:
         response = await call_next(request)
         duration = time.time() - start_time
-        
+
         monitoring.record_request(
             method=request.method,
             endpoint=request.url.path,
             status_code=response.status_code,
             duration=duration
         )
-        
+
         return response
     except Exception as e:
         duration = time.time() - start_time
@@ -288,7 +289,7 @@ async def metrics_endpoint(request: Request) -> Response:
 
 
 # Health endpoint
-async def health_endpoint(request: Request) -> Dict[str, Any]:
+async def health_endpoint(request: Request) -> dict[str, Any]:
     """Health check endpoint."""
     monitoring = get_monitoring_service()
     return monitoring.get_health_status()

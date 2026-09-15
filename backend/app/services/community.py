@@ -2,10 +2,10 @@
 Community service - User profiles, shared designs, reviews
 """
 import logging
-from typing import Dict, Any, Optional, List
-from datetime import datetime
 import uuid
+from datetime import datetime
 from enum import Enum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ class UserRole(str, Enum):
 
 class Review:
     """Represents a review on content."""
-    
+
     def __init__(
         self,
         id: str,
@@ -43,8 +43,8 @@ class Review:
         self.status = status
         self.created_at = created_at or datetime.utcnow()
         self.helpful_count = 0
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "content_type": self.content_type,
@@ -61,7 +61,7 @@ class Review:
 
 class SharedDesign:
     """Represents a shared design from community."""
-    
+
     def __init__(
         self,
         id: str,
@@ -69,10 +69,10 @@ class SharedDesign:
         description: str,
         user_id: str,
         user_name: str,
-        palette: Dict[str, str],
-        typography: Dict[str, str],
+        palette: dict[str, str],
+        typography: dict[str, str],
         preview_image: str = None,
-        tags: List[str] = None,
+        tags: list[str] = None,
         category: str = "general",
         likes_count: int = 0,
         views_count: int = 0,
@@ -93,8 +93,8 @@ class SharedDesign:
         self.views_count = views_count
         self.status = status
         self.created_at = created_at or datetime.utcnow()
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "title": self.title,
@@ -115,7 +115,7 @@ class SharedDesign:
 
 class UserProfile:
     """Represents a community user profile."""
-    
+
     def __init__(
         self,
         id: str,
@@ -145,8 +145,8 @@ class UserProfile:
         self.ratings_count = ratings_count
         self.avg_rating = avg_rating
         self.reputation = reputation
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "email": self.email,
@@ -166,20 +166,20 @@ class UserProfile:
 
 class CommunityService:
     """Service for community features."""
-    
+
     def __init__(self):
-        self.users: Dict[str, UserProfile] = {}
-        self.designs: Dict[str, SharedDesign] = {}
-        self.reviews: Dict[str, Review] = {}
+        self.users: dict[str, UserProfile] = {}
+        self.designs: dict[str, SharedDesign] = {}
+        self.reviews: dict[str, Review] = {}
         self._init_sample_data()
-    
+
     def _init_sample_data(self):
         """Initialize with sample community data."""
         # Create sample users
         self._create_user("admin", "admin@designsystem.com", "Admin User", UserRole.ADMIN)
         self._create_user("creator1", "creator1@example.com", "Creative Studio", UserRole.CREATOR)
         self._create_user("creator2", "creator2@example.com", "Design Master", UserRole.CREATOR)
-        
+
         # Create sample shared designs
         self._create_design(
             title="Ocean Brand Kit",
@@ -194,7 +194,7 @@ class CommunityService:
             category="nature",
             tags=["blue", "ocean", "calm", "fresh"]
         )
-        
+
         self._create_design(
             title="Minimal Portfolio",
             description="Clean minimal portfolio template for creatives",
@@ -208,7 +208,7 @@ class CommunityService:
             category="minimal",
             tags=["minimal", "clean", "portfolio", "simple"]
         )
-    
+
     def _create_user(self, email: str, name: str, role: UserRole) -> UserProfile:
         user_id = str(uuid.uuid4())[:8]
         user = UserProfile(
@@ -219,17 +219,17 @@ class CommunityService:
         )
         self.users[user_id] = user
         return user
-    
+
     def _create_design(
         self,
         title: str,
         description: str,
         user_id: str,
         user_name: str,
-        palette: Dict[str, str],
-        typography: Dict[str, str],
+        palette: dict[str, str],
+        typography: dict[str, str],
         category: str = "general",
-        tags: List[str] = None
+        tags: list[str] = None
     ) -> SharedDesign:
         design_id = str(uuid.uuid4())[:8]
         design = SharedDesign(
@@ -245,20 +245,20 @@ class CommunityService:
         )
         self.designs[design_id] = design
         return design
-    
+
     def create_design(
         self,
         title: str,
         description: str,
         user_id: str,
-        palette: Dict[str, str],
-        typography: Dict[str, str],
+        palette: dict[str, str],
+        typography: dict[str, str],
         category: str = "general",
-        tags: List[str] = None
-    ) -> Optional[SharedDesign]:
+        tags: list[str] = None
+    ) -> SharedDesign | None:
         if user_id not in self.users:
             return None
-        
+
         user = self.users[user_id]
         design_id = str(uuid.uuid4())[:8]
         design = SharedDesign(
@@ -274,58 +274,58 @@ class CommunityService:
         )
         self.designs[design_id] = design
         return design
-    
-    def get_design(self, design_id: str) -> Optional[SharedDesign]:
+
+    def get_design(self, design_id: str) -> SharedDesign | None:
         return self.designs.get(design_id)
-    
+
     def list_designs(
         self,
         category: str = None,
-        tags: List[str] = None,
+        tags: list[str] = None,
         user_id: str = None,
         search: str = None,
         sort_by: str = "newest",
         limit: int = 20
-    ) -> List[SharedDesign]:
+    ) -> list[SharedDesign]:
         results = list(self.designs.values())
-        
+
         if category:
             results = [d for d in results if d.category == category]
-        
+
         if tags:
             results = [d for d in results if any(tag in d.tags for tag in tags)]
-        
+
         if user_id:
             results = [d for d in results if d.user_id == user_id]
-        
+
         if search:
             search_lower = search.lower()
-            results = [d for d in results if 
+            results = [d for d in results if
                       search_lower in d.title.lower() or
                       search_lower in d.description.lower() or
                       any(search_lower in tag.lower() for tag in d.tags)]
-        
+
         if sort_by == "popular":
             results = sorted(results, key=lambda x: x.likes_count, reverse=True)
         elif sort_by == "trending":
             results = sorted(results, key=lambda x: (x.likes_count, x.views_count), reverse=True)
         else:
             results = sorted(results, key=lambda x: x.created_at, reverse=True)
-        
+
         return results[:limit]
-    
+
     def like_design(self, design_id: str, user_id: str) -> bool:
         design = self.designs.get(design_id)
         if design and user_id != design.user_id:
             design.likes_count += 1
             return True
         return False
-    
+
     def view_design(self, design_id: str):
         design = self.designs.get(design_id)
         if design:
             design.views_count += 1
-    
+
     def create_review(
         self,
         content_type: str,
@@ -333,10 +333,10 @@ class CommunityService:
         user_id: str,
         rating: int,
         comment: str = None
-    ) -> Optional[Review]:
+    ) -> Review | None:
         if user_id not in self.users:
             return None
-        
+
         user = self.users[user_id]
         review_id = str(uuid.uuid4())[:8]
         review = Review(
@@ -350,34 +350,34 @@ class CommunityService:
         )
         self.reviews[review_id] = review
         return review
-    
-    def get_reviews(self, content_type: str, content_id: str) -> List[Review]:
-        return [r for r in self.reviews.values() 
+
+    def get_reviews(self, content_type: str, content_id: str) -> list[Review]:
+        return [r for r in self.reviews.values()
                 if r.content_type == content_type and r.content_id == content_id and r.status == "published"]
-    
-    def get_user(self, user_id: str) -> Optional[UserProfile]:
+
+    def get_user(self, user_id: str) -> UserProfile | None:
         return self.users.get(user_id)
-    
-    def get_all_users(self) -> List[UserProfile]:
+
+    def get_all_users(self) -> list[UserProfile]:
         return list(self.users.values())
-    
-    def get_categories(self) -> List[str]:
+
+    def get_categories(self) -> list[str]:
         return list(set(d.category for d in self.designs.values()))
-    
-    def get_tags(self) -> List[str]:
+
+    def get_tags(self) -> list[str]:
         all_tags = set()
         for design in self.designs.values():
             all_tags.update(design.tags)
         return sorted(list(all_tags))
-    
+
     def moderate_review(self, review_id: str, status: str) -> bool:
         review = self.reviews.get(review_id)
         if review:
             review.status = status
             return True
         return False
-    
-    def get_trending_designs(self, limit: int = 10) -> List[SharedDesign]:
+
+    def get_trending_designs(self, limit: int = 10) -> list[SharedDesign]:
         return sorted(
             self.list_designs(),
             key=lambda x: (x.likes_count * 2 + x.views_count),

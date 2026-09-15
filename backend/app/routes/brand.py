@@ -1,20 +1,26 @@
 """
 Brand Routes - CRUD for brands and branding generation
 """
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 import json
-from typing import Dict, Any, List
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models import Brand, Project, DesignSystem
-from app.schemas import BrandCreate, BrandUpdate, BrandResponse, DesignSystemCreate, DesignSystemResponse
+from app.models import Brand, DesignSystem, Project
+from app.schemas import (
+    BrandCreate,
+    BrandResponse,
+    BrandUpdate,
+    DesignSystemCreate,
+    DesignSystemResponse,
+)
 
 router = APIRouter()
 
 
-@router.get("/", response_model=List[BrandResponse])
+@router.get("/", response_model=list[BrandResponse])
 async def list_brands(
     project_id: int = None,
     skip: int = 0,
@@ -23,10 +29,10 @@ async def list_brands(
 ):
     """List all brands, optionally filtered by project_id"""
     query = select(Brand).order_by(Brand.created_at.desc())
-    
+
     if project_id:
         query = query.where(Brand.project_id == project_id)
-    
+
     query = query.offset(skip).limit(limit)
     result = await db.execute(query)
     brands = result.scalars().all()
@@ -41,7 +47,7 @@ async def create_brand(brand_data: BrandCreate, db: AsyncSession = Depends(get_d
     project = result.scalar_one_or_none()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    
+
     brand = Brand(
         project_id=brand_data.project_id,
         business_name=brand_data.business_name,
@@ -74,7 +80,7 @@ async def update_brand(brand_id: int, brand_data: BrandUpdate, db: AsyncSession 
     brand = result.scalar_one_or_none()
     if not brand:
         raise HTTPException(status_code=404, detail="Brand not found")
-    
+
     if brand_data.business_name is not None:
         brand.business_name = brand_data.business_name
     if brand_data.segment is not None:
@@ -87,7 +93,7 @@ async def update_brand(brand_id: int, brand_data: BrandUpdate, db: AsyncSession 
         brand.typography = json.dumps(brand_data.typography)
     if brand_data.logo_svg is not None:
         brand.logo_svg = brand_data.logo_svg
-    
+
     await db.commit()
     await db.refresh(brand)
     return brand
@@ -100,13 +106,13 @@ async def delete_brand(brand_id: int, db: AsyncSession = Depends(get_db)):
     brand = result.scalar_one_or_none()
     if not brand:
         raise HTTPException(status_code=404, detail="Brand not found")
-    
+
     await db.delete(brand)
     await db.commit()
     return {"message": "Brand deleted"}
 
 
-@router.get("/{brand_id}/design-system", response_model=List[DesignSystemResponse])
+@router.get("/{brand_id}/design-system", response_model=list[DesignSystemResponse])
 async def get_brand_design_systems(brand_id: int, db: AsyncSession = Depends(get_db)):
     """Get all design systems for a brand"""
     result = await db.execute(
@@ -130,7 +136,7 @@ async def create_design_system(
     brand = result.scalar_one_or_none()
     if not brand:
         raise HTTPException(status_code=404, detail="Brand not found")
-    
+
     design_system = DesignSystem(
         brand_id=brand_id,
         tokens=json.dumps(ds_data.tokens) if ds_data.tokens else None,

@@ -3,8 +3,10 @@ Typography agent - generates font pairings using AI.
 """
 import json
 import logging
-from typing import Dict, Any, Optional
+from typing import Any
+
 from pydantic import BaseModel
+
 from app.ai_client import AIConfig, chat_completion
 
 logger = logging.getLogger(__name__)
@@ -33,34 +35,34 @@ Provide clear explanations for each selection."""
 
 class TypographyRequest(BaseModel):
     brand_style: str
-    industry: Optional[str] = None
-    preferences: Optional[Dict[str, Any]] = None
+    industry: str | None = None
+    preferences: dict[str, Any] | None = None
 
 class TypographyResponse(BaseModel):
     heading: str
     body: str
     mono: str
-    scale: Dict[str, str]
+    scale: dict[str, str]
     explanation: str
     preview_css: str
 
 class TypographyAgent:
     """AI agent for generating font pairings."""
-    
+
     def __init__(self, ai_config: AIConfig, rag_context: str = ""):
         self.ai_config = ai_config
         self.rag_context = rag_context
         self.system_prompt = TYPOGRAPHY_SYSTEM_PROMPT
-    
+
     async def generate(self, request: TypographyRequest) -> TypographyResponse:
         """Generate typography system."""
         context = f"Brand style: {request.brand_style}"
         if request.industry:
             context += f"\nIndustry: {request.industry}"
-        
+
         # Add RAG context if available
         rag_context_str = f"\n\nTypography rules to follow:\n{self.rag_context}" if self.rag_context else ""
-        
+
         user_message = f"""Based on the following brand context, select 3 harmonious fonts:
 
 {context}{rag_context_str}
@@ -83,21 +85,21 @@ Return ONLY valid JSON in this format:
   "explanation": "why these fonts were chosen",
   "preview_css": ".font-heading {{ font-family: 'X', sans-serif; }}\\n.font-body {{ font-family: 'Y', sans-serif; }}"
 }}"""
-        
+
         messages = [
             {"role": "system", "content": self.system_prompt},
             {"role": "user", "content": user_message}
         ]
-        
+
         response = await chat_completion(
             messages=messages,
             config=self.ai_config,
             response_format={"type": "json_object"}
         )
-        
+
         if not response.success:
             raise Exception(f"Typography generation failed: {response.error}")
-        
+
         try:
             data = json.loads(response.message)
             return TypographyResponse(
@@ -110,4 +112,4 @@ Return ONLY valid JSON in this format:
             )
         except (json.JSONDecodeError, KeyError) as e:
             logger.error(f"Invalid typography response: {e}")
-            raise Exception(f"Invalid AI response format: {e}")
+            raise Exception(f"Invalid AI response format: {e}") from e

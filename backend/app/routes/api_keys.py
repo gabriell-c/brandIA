@@ -1,15 +1,12 @@
 """
 API Keys routes
 """
-from fastapi import APIRouter, HTTPException, Depends, Request
-from typing import Dict, Any, Optional, List
 import logging
+from typing import Any
 
-from app.services.api_keys import (
-    get_api_keys_service,
-    APIKeysService,
-    UsageTier
-)
+from fastapi import APIRouter, Depends, HTTPException, Request
+
+from app.services.api_keys import APIKeysService, UsageTier, get_api_keys_service
 
 logger = logging.getLogger(__name__)
 
@@ -18,9 +15,9 @@ router = APIRouter()
 
 @router.get("")
 async def list_keys(
-    user_id: Optional[str] = None,
+    user_id: str | None = None,
     service: APIKeysService = Depends(get_api_keys_service)
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """List all API keys, optionally filtered by user."""
     return service.list_keys(user_id)
 
@@ -30,9 +27,9 @@ async def create_key(
     name: str,
     user_id: str = "anonymous",
     tier: UsageTier = UsageTier.FREE,
-    expires_in_days: Optional[int] = None,
+    expires_in_days: int | None = None,
     service: APIKeysService = Depends(get_api_keys_service)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Create a new API key."""
     key = service.create_key(
         name=name,
@@ -40,11 +37,11 @@ async def create_key(
         tier=tier,
         expires_in_days=expires_in_days
     )
-    
+
     # Return full key only on creation
     response = key.to_dict()
     response["full_key"] = key.key  # This is the only time the full key is returned
-    
+
     return response
 
 
@@ -52,26 +49,26 @@ async def create_key(
 async def delete_key(
     key_id: str,
     service: APIKeysService = Depends(get_api_keys_service)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Delete an API key."""
     success = service.delete_key(key_id)
     if not success:
         raise HTTPException(status_code=404, detail="Key not found")
-    
+
     return {"success": True, "message": "Key deleted"}
 
 
 @router.get("/stats")
 async def get_stats(
-    key_id: Optional[str] = None,
+    key_id: str | None = None,
     service: APIKeysService = Depends(get_api_keys_service)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Get usage statistics."""
     return service.get_usage_stats(key_id)
 
 
 @router.get("/tiers")
-async def get_tiers() -> Dict[str, Any]:
+async def get_tiers() -> dict[str, Any]:
     """Get available pricing tiers."""
     tiers = {
         "free": {
@@ -109,18 +106,18 @@ async def get_tiers() -> Dict[str, Any]:
 async def check_usage_limit(
     request: Request,
     service: APIKeysService = Depends(get_api_keys_service)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Check if request is within usage limit."""
     api_key = request.headers.get("X-API-Key")
     if not api_key:
         raise HTTPException(status_code=401, detail="API key required")
-    
+
     key = service.get_key_by_value(api_key)
     if not key:
         raise HTTPException(status_code=401, detail="Invalid API key")
-    
+
     is_within_limit = key.usage_this_month < key.monthly_limit
-    
+
     return {
         "is_within_limit": is_within_limit,
         "usage_this_month": key.usage_this_month,

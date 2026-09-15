@@ -1,25 +1,32 @@
 """
 AI Configuration Routes - BYOK (Bring Your Own Key) endpoints
 """
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 import json
 import os
-from typing import Dict, Any, List
+
 from cryptography.fernet import Fernet
-from app.database import get_db
-from app.models import Brand, AIConfig, DesignSystem
-from app.schemas import (
-    AIConfigBase, AIConfigCreate, AIConfigResponse,
-    BrandGenerateRequest, BrandGenerateResponse,
-    PaletteValidateRequest, PaletteValidateResponse,
-    ExportTokensRequest, ExportTokensResponse,
-    RAGSearchRequest, RAGSearchResponse
-)
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.agents import BrandingAgent, PaletteAgent, TypographyAgent
 from app.ai_client import AIConfig as AIClientConfig
+from app.database import get_db
+from app.models import AIConfig, DesignSystem
 from app.rules.rag import get_rag
+from app.schemas import (
+    AIConfigBase,
+    AIConfigCreate,
+    AIConfigResponse,
+    BrandGenerateRequest,
+    BrandGenerateResponse,
+    ExportTokensRequest,
+    ExportTokensResponse,
+    PaletteValidateRequest,
+    PaletteValidateResponse,
+    RAGSearchRequest,
+    RAGSearchResponse,
+)
 
 router = APIRouter()
 
@@ -53,16 +60,16 @@ def get_ai_client_config(ai_config_base: AIConfigBase) -> AIClientConfig:
     )
 
 
-@router.post("/config", response_model=AIConfigResponse)
+@router.post("/config", response_model=AIConfigResponse, status_code=201)
 async def set_ai_config(config: AIConfigCreate, db: AsyncSession = Depends(get_db)):
     """Configure AI provider (BYOK) with encrypted key storage"""
     # Encrypt the API key before storing
     encrypted_key = encrypt_key(config.api_key)
-    
+
     # Save or update config
     result = await db.execute(select(AIConfig).limit(1))
     ai_config = result.scalar_one_or_none()
-    
+
     if ai_config:
         ai_config.provider = config.provider
         ai_config.base_url = str(config.base_url)
@@ -76,10 +83,10 @@ async def set_ai_config(config: AIConfigCreate, db: AsyncSession = Depends(get_d
             model=config.model
         )
         db.add(ai_config)
-    
+
     await db.commit()
     await db.refresh(ai_config)
-    
+
     # Return response with masked key
     return AIConfigResponse(
         provider=ai_config.provider,
@@ -94,7 +101,7 @@ async def get_ai_config(db: AsyncSession = Depends(get_db)):
     """Get current AI config (with masked key)"""
     result = await db.execute(select(AIConfig).limit(1))
     ai_config = result.scalar_one_or_none()
-    
+
     if not ai_config:
         return AIConfigResponse(
             provider="openai",
@@ -102,7 +109,7 @@ async def get_ai_config(db: AsyncSession = Depends(get_db)):
             api_key="",
             model="gpt-4o"
         )
-    
+
     return AIConfigResponse(
         provider=ai_config.provider,
         base_url=ai_config.base_url,
@@ -116,12 +123,12 @@ async def delete_ai_config(db: AsyncSession = Depends(get_db)):
     """Remove AI configuration"""
     result = await db.execute(select(AIConfig).limit(1))
     ai_config = result.scalar_one_or_none()
-    
+
     if ai_config:
         await db.delete(ai_config)
         await db.commit()
         return {"message": "AI configuration removed"}
-    
+
     return {"message": "No configuration to remove"}
 
 
@@ -129,15 +136,15 @@ async def get_ai_config_dependency(db: AsyncSession = Depends(get_db)) -> AIConf
     """Dependency to get AI config with decrypted key"""
     result = await db.execute(select(AIConfig).limit(1))
     ai_config = result.scalar_one_or_none()
-    
+
     if not ai_config:
         raise HTTPException(
-            status_code=400, 
+            status_code=400,
             detail="AI not configured. Call POST /api/v1/ai-config/config first."
         )
-    
+
     decrypted_key = decrypt_key(ai_config.api_key)
-    
+
     return AIConfigBase(
         provider=ai_config.provider,
         base_url=ai_config.base_url,
@@ -158,29 +165,29 @@ async def generate_brand(
     rag_context = rag.get_context(
         f"branding {request.business_name} {request.segment or ''} {request.tone_of_voice or ''}"
     )
-    
+
     # Initialize agents
     agent_config = get_ai_client_config(ai_config)
     branding_agent = BrandingAgent(agent_config, rag_context=rag_context)
     palette_agent = PaletteAgent(agent_config, rag_context=rag_context)
     typography_agent = TypographyAgent(agent_config, rag_context=rag_context)
-    
+
     # Generate branding
     business_info = {
         "business_name": request.business_name,
         "segment": request.segment,
         "tone_of_voice": request.tone_of_voice
     }
-    
+
     # Step 1: Brand agent generates overall concept
     brand_result = await branding_agent.generate(business_info)
-    
+
     # Step 2: Palette agent generates color palette
     palette_result = await palette_agent.generate(business_info)
-    
+
     # Step 3: Typography agent generates typography
     typography_result = await typography_agent.generate(business_info)
-    
+
     # Combine results
     response = BrandGenerateResponse(
         brand_name=brand_result.brand_name,
@@ -193,7 +200,7 @@ async def generate_brand(
         },
         explanation=f"{brand_result.explanation}\n\n{typography_result.explanation}"
     )
-    
+
     return response
 
 
@@ -220,27 +227,27 @@ async def export_tokens(
     """Export design tokens in multiple formats"""
     result = await db.execute(select(DesignSystem).where(DesignSystem.id == request.design_system_id))
     ds = result.scalar_one_or_none()
-    
+
     if not ds:
         raise HTTPException(status_code=404, detail="Design system not found")
-    
+
     # Parse tokens
     tokens = json.loads(ds.tokens) if ds.tokens else {}
-    
+
     # Generate CSS Variables
     css_vars = ":root {\n"
     for key, value in tokens.items():
         css_vars += f"  --{key}: {value};\n"
     css_vars += "}"
-    
+
     # Generate Tailwind Config
     tailwind_config = """// tailwind.config.js\nmodule.exports = {\n  theme: {\n    extend: {\n      colors: {\n"""
     for key, value in tokens.items():
         tailwind_config += f"        '{key}': '{value}',\n"
     tailwind_config += """      },\n    },\n  },\n}"""
-    
+
     return ExportTokensResponse(
-        json=tokens,
+        data=tokens,
         css_variables=css_vars,
         tailwind_config=tailwind_config
     )
@@ -258,7 +265,7 @@ async def search_rules(request: RAGSearchRequest):
     """Search rules using RAG"""
     rag = get_rag()
     results = rag.search(request.query, top_k=3)
-    
+
     return RAGSearchResponse(
         query=request.query,
         results=[{

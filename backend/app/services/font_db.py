@@ -2,15 +2,15 @@
 Font database - Community-contributed font pairings
 """
 import logging
-from typing import Dict, Any, Optional, List
 from datetime import datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
 class FontPairing:
     """Represents a community font pairing."""
-    
+
     def __init__(
         self,
         id: int,
@@ -21,7 +21,7 @@ class FontPairing:
         description: str,
         author: str,
         style: str,
-        tags: List[str],
+        tags: list[str],
         rating: float = 0.0,
         votes: int = 0,
         created_at: datetime = None,
@@ -40,8 +40,8 @@ class FontPairing:
         self.votes = votes
         self.created_at = created_at or datetime.utcnow()
         self.updated_at = updated_at or datetime.utcnow()
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "id": self.id,
@@ -58,7 +58,7 @@ class FontPairing:
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat()
         }
-    
+
     def add_vote(self, score: int):
         """Add a vote to the pairing."""
         self.votes += 1
@@ -68,12 +68,12 @@ class FontPairing:
 
 class FontDatabase:
     """In-memory font pairing database."""
-    
+
     def __init__(self):
-        self.pairings: Dict[int, FontPairing] = {}
+        self.pairings: dict[int, FontPairing] = {}
         self._next_id = 1
         self._init_sample_pairings()
-    
+
     def _init_sample_pairings(self):
         """Initialize with sample font pairings."""
         samples = [
@@ -128,7 +128,7 @@ class FontDatabase:
                 "tags": ["bold", "condensed", "strong", "impact"]
             }
         ]
-        
+
         for sample in samples:
             self.create(
                 name=sample["name"],
@@ -140,7 +140,7 @@ class FontDatabase:
                 style=sample["style"],
                 tags=sample["tags"]
             )
-    
+
     def create(
         self,
         name: str,
@@ -150,7 +150,7 @@ class FontDatabase:
         description: str,
         author: str,
         style: str,
-        tags: List[str] = None
+        tags: list[str] = None
     ) -> FontPairing:
         """Create a new font pairing."""
         pairing = FontPairing(
@@ -167,44 +167,44 @@ class FontDatabase:
         self.pairings[self._next_id] = pairing
         self._next_id += 1
         return pairing
-    
-    def get_all(self, style: str = None, tags: List[str] = None, search: str = None) -> List[FontPairing]:
+
+    def get_all(self, style: str = None, tags: list[str] = None, search: str = None) -> list[FontPairing]:
         """Get all pairings with optional filters."""
         results = list(self.pairings.values())
-        
+
         if style:
             results = [p for p in results if p.style == style]
-        
+
         if tags:
             results = [p for p in results if any(tag in p.tags for tag in tags)]
-        
+
         if search:
             search_lower = search.lower()
-            results = [p for p in results if 
+            results = [p for p in results if
                       search_lower in p.name.lower() or
                       search_lower in p.description.lower() or
                       search_lower in p.heading_font.lower() or
                       search_lower in p.body_font.lower() or
                       any(search_lower in tag.lower() for tag in p.tags)]
-        
+
         return sorted(results, key=lambda x: x.rating, reverse=True)
-    
-    def get_by_id(self, pairing_id: int) -> Optional[FontPairing]:
+
+    def get_by_id(self, pairing_id: int) -> FontPairing | None:
         """Get pairing by ID."""
         return self.pairings.get(pairing_id)
-    
-    def vote(self, pairing_id: int, score: int) -> Optional[FontPairing]:
+
+    def vote(self, pairing_id: int, score: int) -> FontPairing | None:
         """Vote for a pairing (1-5 stars)."""
         pairing = self.pairings.get(pairing_id)
         if pairing:
             pairing.add_vote(score)
         return pairing
-    
-    def get_styles(self) -> List[str]:
+
+    def get_styles(self) -> list[str]:
         """Get all available styles."""
         return list(set(p.style for p in self.pairings.values()))
-    
-    def get_tags(self) -> List[str]:
+
+    def get_tags(self) -> list[str]:
         """Get all available tags."""
         all_tags = set()
         for pairing in self.pairings.values():

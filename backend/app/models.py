@@ -1,7 +1,8 @@
-from sqlalchemy import String, Integer, DateTime, func, ForeignKey, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from typing import Optional
 from datetime import datetime
+
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.database import Base
 
 
@@ -10,9 +11,9 @@ class Project(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
-    business_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    business_segment: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    description: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    business_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    business_segment: Mapped[str | None] = mapped_column(String(100), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
@@ -25,12 +26,12 @@ class Brand(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     project_id: Mapped[int] = mapped_column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
-    business_name: Mapped[Optional[str]] = mapped_column(String(255))
-    segment: Mapped[Optional[str]] = mapped_column(String(100))
-    tone_of_voice: Mapped[Optional[str]] = mapped_column(String(50))
-    palette: Mapped[Optional[str]] = mapped_column("palette", nullable=True)  # JSON
-    typography: Mapped[Optional[str]] = mapped_column("typography", nullable=True)  # JSON
-    logo_svg: Mapped[Optional[str]] = mapped_column("logo_svg", nullable=True)  # SVG string
+    business_name: Mapped[str | None] = mapped_column(String(255))
+    segment: Mapped[str | None] = mapped_column(String(100))
+    tone_of_voice: Mapped[str | None] = mapped_column(String(50))
+    palette: Mapped[str | None] = mapped_column("palette", nullable=True)  # JSON
+    typography: Mapped[str | None] = mapped_column("typography", nullable=True)  # JSON
+    logo_svg: Mapped[str | None] = mapped_column("logo_svg", nullable=True)  # SVG string
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     # Relationships
@@ -43,8 +44,8 @@ class DesignSystem(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     brand_id: Mapped[int] = mapped_column(Integer, ForeignKey("brands.id", ondelete="CASCADE"), nullable=False, index=True)
-    tokens: Mapped[Optional[str]] = mapped_column("tokens", nullable=True)  # JSON
-    components: Mapped[Optional[str]] = mapped_column("components", nullable=True)  # JSON
+    tokens: Mapped[str | None] = mapped_column("tokens", nullable=True)  # JSON
+    components: Mapped[str | None] = mapped_column("components", nullable=True)  # JSON
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     # Relationships

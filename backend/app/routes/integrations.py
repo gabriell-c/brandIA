@@ -1,9 +1,10 @@
 """
 Integrations routes - Figma, VS Code, Export endpoints
 """
-from fastapi import APIRouter, HTTPException
-from typing import Dict, Any, List, Optional
 import logging
+from typing import Any
+
+from fastapi import APIRouter
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ async def export_to_figma():
 
 # VS Code endpoints
 @router.get("/vscode/snippets")
-async def get_vscode_snippets() -> List[Dict[str, Any]]:
+async def get_vscode_snippets() -> list[dict[str, Any]]:
     """Get VS Code snippets for design tokens"""
     return [
         {
@@ -54,7 +55,7 @@ async def get_vscode_snippets() -> List[Dict[str, Any]]:
 
 # React/Vue export endpoints
 @router.get("/react/components")
-async def get_react_components() -> Dict[str, Any]:
+async def get_react_components() -> dict[str, Any]:
     """List available React components"""
     return {
         "components": [
@@ -66,7 +67,7 @@ async def get_react_components() -> Dict[str, Any]:
     }
 
 @router.get("/vue/components")
-async def get_vue_components() -> Dict[str, Any]:
+async def get_vue_components() -> dict[str, Any]:
     """List available Vue components"""
     return {
         "components": [

@@ -2,27 +2,27 @@
 Templates service - Pre-made design templates for common segments
 """
 import logging
-from typing import Dict, Any, Optional, List
 from datetime import datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
 class Template:
     """Represents a design template."""
-    
+
     def __init__(
         self,
         id: int,
         name: str,
         description: str,
         segment: str,
-        palette: Dict[str, str],
-        typography: Dict[str, str],
+        palette: dict[str, str],
+        typography: dict[str, str],
         preview_image: str = None,
         author: str = "System",
         is_premium: bool = False,
-        tags: List[str] = None,
+        tags: list[str] = None,
         created_at: datetime = None
     ):
         self.id = id
@@ -36,8 +36,8 @@ class Template:
         self.is_premium = is_premium
         self.tags = tags or []
         self.created_at = created_at or datetime.utcnow()
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "id": self.id,
@@ -56,12 +56,12 @@ class Template:
 
 class TemplateDatabase:
     """In-memory template database."""
-    
+
     def __init__(self):
-        self.templates: Dict[int, Template] = {}
+        self.templates: dict[int, Template] = {}
         self._next_id = 1
         self._init_sample_templates()
-    
+
     def _init_sample_templates(self):
         """Initialize with sample templates."""
         samples = [
@@ -180,7 +180,7 @@ class TemplateDatabase:
                 "tags": ["food", "restaurant", "warm", "appetizing"]
             }
         ]
-        
+
         for sample in samples:
             self.create(
                 name=sample["name"],
@@ -190,18 +190,18 @@ class TemplateDatabase:
                 typography=sample["typography"],
                 tags=sample["tags"]
             )
-    
+
     def create(
         self,
         name: str,
         description: str,
         segment: str,
-        palette: Dict[str, str],
-        typography: Dict[str, str],
+        palette: dict[str, str],
+        typography: dict[str, str],
         preview_image: str = None,
         author: str = "System",
         is_premium: bool = False,
-        tags: List[str] = None
+        tags: list[str] = None
     ) -> Template:
         """Create a new template."""
         template = Template(
@@ -219,43 +219,43 @@ class TemplateDatabase:
         self.templates[self._next_id] = template
         self._next_id += 1
         return template
-    
-    def get_all(self, segment: str = None, tags: List[str] = None, search: str = None) -> List[Template]:
+
+    def get_all(self, segment: str = None, tags: list[str] = None, search: str = None) -> list[Template]:
         """Get all templates with optional filters."""
         results = list(self.templates.values())
-        
+
         if segment:
             results = [t for t in results if t.segment == segment]
-        
+
         if tags:
             results = [t for t in results if any(tag in t.tags for tag in tags)]
-        
+
         if search:
             search_lower = search.lower()
-            results = [t for t in results if 
+            results = [t for t in results if
                       search_lower in t.name.lower() or
                       search_lower in t.description.lower() or
                       search_lower in t.segment.lower() or
                       any(search_lower in tag.lower() for tag in t.tags)]
-        
+
         return results
-    
-    def get_by_id(self, template_id: int) -> Optional[Template]:
+
+    def get_by_id(self, template_id: int) -> Template | None:
         """Get template by ID."""
         return self.templates.get(template_id)
-    
-    def get_segments(self) -> List[str]:
+
+    def get_segments(self) -> list[str]:
         """Get all available segments."""
         return list(set(t.segment for t in self.templates.values()))
-    
-    def get_tags(self) -> List[str]:
+
+    def get_tags(self) -> list[str]:
         """Get all available tags."""
         all_tags = set()
         for template in self.templates.values():
             all_tags.update(template.tags)
         return sorted(list(all_tags))
-    
-    def get_premium(self) -> List[Template]:
+
+    def get_premium(self) -> list[Template]:
         """Get all premium templates."""
         return [t for t in self.templates.values() if t.is_premium]
 

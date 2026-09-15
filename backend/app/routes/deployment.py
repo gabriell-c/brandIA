@@ -1,13 +1,12 @@
 """
 Deployment & Monitoring Routes
 """
-from fastapi import APIRouter, HTTPException
-from typing import Dict, Any, List, Optional
 import logging
 
-from app.services.backup import get_backup_service, BackupService
-from app.services.monitoring import get_monitoring_service, MonitoringService
-from app.services import get_backup_service as get_backup
+from fastapi import APIRouter, HTTPException
+
+from app.services.backup import BackupService, get_backup_service
+from app.services.monitoring import get_monitoring_service
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +68,6 @@ async def get_health():
 @router.get("/monitoring/metrics")
 async def get_metrics():
     """Get Prometheus metrics."""
-    monitoring = get_monitoring_service()
     from app.services.monitoring import metrics_endpoint
     return await metrics_endpoint(None)
 
@@ -137,14 +135,14 @@ async def validate_backup(backup_name: str):
     """Validate a backup file."""
     backup_service = get_backup_service()
     backup_path = backup_service.backup_dir / backup_name
-    
+
     if not backup_path.exists():
         raise HTTPException(status_code=404, detail="Backup not found")
-    
+
     from app.services.backup import BackupService
     service = BackupService()
     is_valid = service.validate_backup(str(backup_path))
-    
+
     return {
         "backup_name": backup_name,
         "valid": is_valid,
@@ -165,22 +163,22 @@ async def restore_backup(backup_name: str):
     """Restore from a backup."""
     backup_service = get_backup_service()
     backup_path = backup_service.backup_dir / backup_name
-    
+
     if not backup_path.exists():
         raise HTTPException(status_code=404, detail="Backup not found")
-    
+
     # Validate before restore
     service = BackupService()
     is_valid = service.validate_backup(str(backup_path))
     if not is_valid:
         raise HTTPException(status_code=400, detail="Backup validation failed")
-    
+
     # Perform restore
     result = backup_service.restore_backup(str(backup_path))
-    
+
     if not result["success"]:
         raise HTTPException(status_code=500, detail=result.get("error", "Restore failed"))
-    
+
     return result
 
 
@@ -189,10 +187,10 @@ async def restore_latest():
     """Restore from latest backup."""
     backup_service = get_backup_service()
     result = backup_service.restore_latest()
-    
+
     if not result["success"]:
         raise HTTPException(status_code=500, detail=result.get("error", "Restore failed"))
-    
+
     return result
 
 

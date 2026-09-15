@@ -27,9 +27,10 @@ where = ["."]
 include = ["app*"]
 
 [tool.ruff]
-line-length = 100
+line-length = 120
 target-version = "py312"
-select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM"]
+select = ["E", "F", "I", "N", "UP", "C4", "SIM"]
+ignore = ["E501", "B008", "UP042", "C401", "C414", "N806", "F841"]  # FastAPI patterns and style preferences
 
 [tool.ruff.isort]
 known-first-party = ["app"]

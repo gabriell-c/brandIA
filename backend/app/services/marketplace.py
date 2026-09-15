@@ -2,10 +2,10 @@
 Marketplace service - Premium templates marketplace with Stripe integration
 """
 import logging
-from typing import Dict, Any, Optional, List
+import uuid
 from datetime import datetime
 from enum import Enum
-import uuid
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -27,21 +27,21 @@ class TemplateStatus(str, Enum):
 
 class MarketplaceTemplate:
     """Represents a marketplace template."""
-    
+
     def __init__(
         self,
         id: str,
         name: str,
         description: str,
         segment: str,
-        palette: Dict[str, str],
-        typography: Dict[str, str],
-        preview_images: List[str],
+        palette: dict[str, str],
+        typography: dict[str, str],
+        preview_images: list[str],
         author_id: str,
         author_name: str,
         price_cents: int,
         license_type: LicenseType = LicenseType.COMMERCIAL,
-        tags: List[str] = None,
+        tags: list[str] = None,
         status: TemplateStatus = TemplateStatus.DRAFT,
         created_at: datetime = None,
         updated_at: datetime = None
@@ -63,8 +63,8 @@ class MarketplaceTemplate:
         self.updated_at = updated_at or datetime.utcnow()
         self.sales_count = 0
         self.revenue_cents = 0
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "name": self.name,
@@ -89,7 +89,7 @@ class MarketplaceTemplate:
 
 class Purchase:
     """Represents a template purchase."""
-    
+
     def __init__(
         self,
         id: str,
@@ -114,8 +114,8 @@ class Purchase:
         self.status = status
         self.created_at = created_at or datetime.utcnow()
         self.completed_at = None
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "template_id": self.template_id,
@@ -130,7 +130,7 @@ class Purchase:
             "created_at": self.created_at.isoformat(),
             "completed_at": self.completed_at.isoformat() if self.completed_at else None
         }
-    
+
     def mark_completed(self, payment_intent_id: str = None):
         self.status = "completed"
         self.completed_at = datetime.utcnow()
@@ -140,12 +140,12 @@ class Purchase:
 
 class MarketplaceService:
     """Service for marketplace operations."""
-    
+
     def __init__(self):
-        self.templates: Dict[str, MarketplaceTemplate] = {}
-        self.purchases: Dict[str, Purchase] = {}
+        self.templates: dict[str, MarketplaceTemplate] = {}
+        self.purchases: dict[str, Purchase] = {}
         self._init_sample_templates()
-    
+
     def _init_sample_templates(self):
         """Initialize with sample premium templates."""
         samples = [
@@ -201,7 +201,7 @@ class MarketplaceService:
                 "tags": ["portfolio", "creative", "gallery", "showcase"]
             }
         ]
-        
+
         for sample in samples:
             self.create_template(
                 name=sample["name"],
@@ -216,20 +216,20 @@ class MarketplaceService:
                 license_type=sample["license_type"],
                 tags=sample["tags"]
             )
-    
+
     def create_template(
         self,
         name: str,
         description: str,
         segment: str,
-        palette: Dict[str, str],
-        typography: Dict[str, str],
-        preview_images: List[str],
+        palette: dict[str, str],
+        typography: dict[str, str],
+        preview_images: list[str],
         author_id: str,
         author_name: str,
         price_cents: int,
         license_type: LicenseType = LicenseType.COMMERCIAL,
-        tags: List[str] = None
+        tags: list[str] = None
     ) -> MarketplaceTemplate:
         """Create a new marketplace template."""
         template = MarketplaceTemplate(
@@ -249,70 +249,70 @@ class MarketplaceService:
         )
         self.templates[template.id] = template
         return template
-    
-    def get_template(self, template_id: str) -> Optional[MarketplaceTemplate]:
+
+    def get_template(self, template_id: str) -> MarketplaceTemplate | None:
         return self.templates.get(template_id)
-    
+
     def list_templates(
         self,
         status: TemplateStatus = None,
         segment: str = None,
-        tags: List[str] = None,
+        tags: list[str] = None,
         min_price: int = None,
         max_price: int = None,
         search: str = None
-    ) -> List[MarketplaceTemplate]:
+    ) -> list[MarketplaceTemplate]:
         results = list(self.templates.values())
-        
+
         if status:
             results = [t for t in results if t.status == status]
-        
+
         if segment:
             results = [t for t in results if t.segment == segment]
-        
+
         if tags:
             results = [t for t in results if any(tag in t.tags for tag in tags)]
-        
+
         if min_price is not None:
             results = [t for t in results if t.price_cents >= min_price]
-        
+
         if max_price is not None:
             results = [t for t in results if t.price_cents <= max_price]
-        
+
         if search:
             search_lower = search.lower()
-            results = [t for t in results if 
+            results = [t for t in results if
                       search_lower in t.name.lower() or
                       search_lower in t.description.lower() or
                       search_lower in t.segment.lower() or
                       any(search_lower in tag.lower() for tag in t.tags)]
-        
+
         return sorted(results, key=lambda x: x.created_at, reverse=True)
-    
-    def get_active_templates(self) -> List[MarketplaceTemplate]:
+
+    def get_active_templates(self) -> list[MarketplaceTemplate]:
         return [t for t in self.templates.values() if t.status == TemplateStatus.ACTIVE]
-    
-    def submit_for_review(self, template_id: str) -> Optional[MarketplaceTemplate]:
+
+    def submit_for_review(self, template_id: str) -> MarketplaceTemplate | None:
         template = self.templates.get(template_id)
         if template:
             template.status = TemplateStatus.PENDING_REVIEW
             template.updated_at = datetime.utcnow()
         return template
-    
-    def approve_template(self, template_id: str) -> Optional[MarketplaceTemplate]:
+
+    def approve_template(self, template_id: str) -> MarketplaceTemplate | None:
         template = self.templates.get(template_id)
         if template:
             template.status = TemplateStatus.APPROVED
             template.updated_at = datetime.utcnow()
         return template
-    
-    def activate_template(self, template_id: str) -> Optional[MarketplaceTemplate]:
+
+    def activate_template(self, template_id: str) -> MarketplaceTemplate | None:
         template = self.templates.get(template_id)
         if template:
             template.status = TemplateStatus.ACTIVE
             template.updated_at = datetime.utcnow()
         return template
-    
+
     def create_purchase(
         self,
         template_id: str,
@@ -320,11 +320,11 @@ class MarketplaceService:
         buyer_email: str,
         license_type: LicenseType,
         stripe_session_id: str = None
-    ) -> Optional[Purchase]:
+    ) -> Purchase | None:
         template = self.templates.get(template_id)
         if not template:
             return None
-        
+
         purchase = Purchase(
             id=str(uuid.uuid4())[:8],
             template_id=template_id,
@@ -336,8 +336,8 @@ class MarketplaceService:
         )
         self.purchases[purchase.id] = purchase
         return purchase
-    
-    def complete_purchase(self, purchase_id: str, payment_intent_id: str = None) -> Optional[Purchase]:
+
+    def complete_purchase(self, purchase_id: str, payment_intent_id: str = None) -> Purchase | None:
         purchase = self.purchases.get(purchase_id)
         if purchase:
             purchase.mark_completed(payment_intent_id)
@@ -347,35 +347,35 @@ class MarketplaceService:
                 template.sales_count += 1
                 template.revenue_cents += purchase.amount_cents
         return purchase
-    
-    def get_user_purchases(self, user_id: str) -> List[Purchase]:
+
+    def get_user_purchases(self, user_id: str) -> list[Purchase]:
         return [p for p in self.purchases.values() if p.buyer_id == user_id]
-    
+
     def has_purchased(self, user_id: str, template_id: str) -> bool:
         purchases = self.get_user_purchases(user_id)
         return any(p.template_id == template_id and p.status == "completed" for p in purchases)
-    
-    def create_stripe_checkout_session(self, template_id: str, buyer_email: str, success_url: str, cancel_url: str) -> Dict[str, Any]:
+
+    def create_stripe_checkout_session(self, template_id: str, buyer_email: str, success_url: str, cancel_url: str) -> dict[str, Any]:
         """Create a Stripe checkout session (mock implementation)."""
         template = self.templates.get(template_id)
         if not template:
             raise ValueError("Template not found")
-        
+
         # In production, integrate with Stripe API
         # For now, return a mock session
         session_id = f"cs_mock_{uuid.uuid4().hex[:16]}"
-        
+
         return {
             "session_id": session_id,
             "url": f"https://checkout.stripe.com/pay/{session_id}?mock=true",
             "template": template.to_dict(),
             "amount_cents": template.price_cents
         }
-    
-    def get_segments(self) -> List[str]:
+
+    def get_segments(self) -> list[str]:
         return list(set(t.segment for t in self.templates.values()))
-    
-    def get_tags(self) -> List[str]:
+
+    def get_tags(self) -> list[str]:
         all_tags = set()
         for template in self.templates.values():
             all_tags.update(template.tags)

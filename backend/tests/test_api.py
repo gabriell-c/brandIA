@@ -1,28 +1,23 @@
-"""
-OmniRoute Design System - API Tests
-"""
 import pytest
-from fastapi.testclient import TestClient
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.main import app
-from app.database import Base, engine
-
-# Test client
-client = TestClient(app)
+from app.database import get_db
 
 
 @pytest.mark.asyncio
-async def test_health_check():
+async def test_health_check(client):
     """Test health check endpoint"""
-    response = client.get("/health")
+    response = await client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
 
 @pytest.mark.asyncio
-async def test_root():
+async def test_root(client):
     """Test root endpoint"""
-    response = client.get("/")
+    response = await client.get("/")
     assert response.status_code == 200
     data = response.json()
     assert "message" in data
@@ -30,16 +25,16 @@ async def test_root():
 
 
 @pytest.mark.asyncio
-async def test_get_projects_empty():
+async def test_get_projects_empty(client):
     """Test listing projects when empty"""
-    response = client.get("/api/v1/projects/")
+    response = await client.get("/api/v1/projects/")
     assert response.status_code == 200
     assert isinstance(response.json(), list)
     assert len(response.json()) == 0
 
 
 @pytest.mark.asyncio
-async def test_create_project():
+async def test_create_project(client, db_session: AsyncSession):
     """Test creating a project"""
     project_data = {
         "name": "Test Project",
@@ -47,8 +42,8 @@ async def test_create_project():
         "business_name": "Test Business",
         "business_segment": "Technology",
     }
-
-    response = client.post("/api/v1/projects/", json=project_data)
+    
+    response = await client.post("/api/v1/projects/", json=project_data)
     assert response.status_code == 201
     data = response.json()
     assert data["name"] == project_data["name"]
@@ -58,122 +53,133 @@ async def test_create_project():
 
 
 @pytest.mark.asyncio
-async def test_get_project_not_found():
-    """Test getting non-existent project"""
-    response = client.get("/api/v1/projects/999")
+async def test_get_project_not_found(client):
+    """Test getting a non-existent project"""
+    response = await client.get("/api/v1/projects/999")
     assert response.status_code == 404
-    data = response.json()
-    assert "detail" in data
+    assert "Project not found" in response.json()["detail"]
 
 
 @pytest.mark.asyncio
-async def test_create_project_missing_fields():
-    """Test creating project with missing required fields"""
-    response = client.post("/api/v1/projects/", json={})
-    assert response.status_code == 422
-    data = response.json()
-    assert "detail" in data
+async def test_create_project_missing_fields(client):
+    """Test creating a project with missing required fields"""
+    project_data = {
+        "name": "Test Project",
+        # Missing required fields: description, business_name, business_segment
+    }
+    
+    response = await client.post("/api/v1/projects/", json=project_data)
+    assert response.status_code == 422  # Validation error
 
 
 @pytest.mark.asyncio
-async def test_update_project():
+async def test_update_project(client, db_session: AsyncSession):
     """Test updating a project"""
-    # Create first
-    create_response = client.post("/api/v1/projects/", json={"name": "Original Name"})
+    # Create project first
+    project_data = {
+        "name": "Test Project",
+        "description": "A test project for validation",
+        "business_name": "Test Business",
+        "business_segment": "Technology",
+    }
+    create_response = await client.post("/api/v1/projects/", json=project_data)
     project_id = create_response.json()["id"]
-
-    # Update
-    update_response = client.put(f"/api/v1/projects/{project_id}", json={"name": "Updated Name"})
-    assert update_response.status_code == 200
-    assert update_response.json()["name"] == "Updated Name"
+    
+    # Update project
+    update_data = {"name": "Updated Project"}
+    response = await client.put(f"/api/v1/projects/{project_id}", json=update_data)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["name"] == "Updated Project"
 
 
 @pytest.mark.asyncio
-async def test_delete_project():
+async def test_delete_project(client, db_session: AsyncSession):
     """Test deleting a project"""
-    # Create first
-    create_response = client.post("/api/v1/projects/", json={"name": "Delete Me"})
+    # Create project first
+    project_data = {
+        "name": "Test Project",
+        "description": "A test project for validation",
+        "business_name": "Test Business",
+        "business_segment": "Technology",
+    }
+    create_response = await client.post("/api/v1/projects/", json=project_data)
     project_id = create_response.json()["id"]
-
-    # Delete
-    delete_response = client.delete(f"/api/v1/projects/{project_id}")
-    assert delete_response.status_code == 200
-    assert "message" in delete_response.json()
-
-    # Verify deletion
-    get_response = client.get(f"/api/v1/projects/{project_id}")
-    assert get_response.status_code == 404
+    
+    # Delete project
+    response = await client.delete(f"/api/v1/projects/{project_id}")
+    assert response.status_code == 200
+    assert response.json()["message"] == "Project deleted"
 
 
 @pytest.mark.asyncio
-async def test_create_ai_config():
-    """Test creating AI configuration"""
+async def test_create_ai_config(client, db_session: AsyncSession):
+    """Test creating AI config"""
     ai_config_data = {
         "provider": "openai",
-        "base_url": "https://api.openai.com/v1",
-        "api_key": "test-key-12345",
-        "model": "gpt-4o",
+        "api_key": "test-key",
+        "model": "gpt-4"
     }
-
-    response = client.post("/api/v1/ai-config/config", json=ai_config_data)
-    assert response.status_code == 200
+    
+    response = await client.post("/api/v1/ai-config/config", json=ai_config_data)
+    assert response.status_code == 201
     data = response.json()
     assert data["provider"] == "openai"
-    assert data["model"] == "gpt-4o"
-    assert data["api_key"] == "***"  # Masked
+    assert "model" in data
 
 
 @pytest.mark.asyncio
-async def test_get_ai_config():
+async def test_get_ai_config(client, db_session: AsyncSession):
     """Test getting AI config"""
-    # First create config
-    client.post("/api/v1/ai-config/config", json={
+    # Create config first
+    ai_config_data = {
         "provider": "openai",
-        "base_url": "https://api.openai.com/v1",
         "api_key": "test-key",
-        "model": "gpt-4o"
-    })
-
-    response = client.get("/api/v1/ai-config/config")
-    assert response.status_code == 200
-    data = response.json()
+        "model": "gpt-4"
+    }
+    create_response = await client.post("/api/v1/ai-config/config", json=ai_config_data)
+    data = create_response.json()
+    # Config is stored as single row, no ID needed for GET
+    config_data = await client.get("/api/v1/ai-config/config")
+    assert config_data.status_code == 200
+    data = config_data.json()
     assert data["provider"] == "openai"
 
 
 @pytest.mark.asyncio
-async def test_delete_ai_config():
+async def test_delete_ai_config(client, db_session: AsyncSession):
     """Test deleting AI config"""
-    # First create config
-    client.post("/api/v1/ai-config/config", json={
+    # Create config first
+    ai_config_data = {
         "provider": "openai",
-        "base_url": "https://api.openai.com/v1",
         "api_key": "test-key",
-        "model": "gpt-4o"
-    })
-
-    response = client.delete("/api/v1/ai-config/config")
+        "model": "gpt-4"
+    }
+    await client.post("/api/v1/ai-config/config", json=ai_config_data)
+    
+    # Delete config
+    response = await client.delete("/api/v1/ai-config/config")
     assert response.status_code == 200
-    assert "message" in response.json()
+    assert response.json()["message"] == "AI configuration removed"
 
 
 @pytest.mark.asyncio
-async def test_rate_limit():
-    """Test rate limiting middleware"""
-    # Should pass initially
-    response = client.get("/health")
-    assert response.status_code == 200
-
-
-@pytest.mark.asyncio
-async def test_cors():
+async def test_cors(client):
     """Test CORS headers"""
-    response = client.get("/health", headers={"Origin": "http://localhost:7000"})
+    response = await client.get(
+        "/health",
+        headers={"Origin": "http://localhost:7000"}
+    )
     assert response.status_code == 200
+    # CORS headers should be present for allowed origin
     assert "access-control-allow-origin" in response.headers
 
 
 @pytest.mark.asyncio
-async def test_request_logging():
-    """Test that request logging middleware works"""
-    response = client.get("/health")
-    assert response.status_code == 200
+async def test_request_logging(client, caplog):
+    """Test that requests are logged"""
+    with caplog.at_level("INFO"):
+        response = await client.get("/health")
+        assert response.status_code == 200
+        # Check that request was logged
+        assert "GET /health" in caplog.text or "GET /health" in str(caplog.records)

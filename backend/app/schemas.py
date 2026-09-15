@@ -1,10 +1,11 @@
 """
 OmniRoute Design System - Pydantic Schemas
 """
-from pydantic import BaseModel, Field, HttpUrl, field_validator
-from typing import Optional, Dict, Any, List
-from datetime import datetime
 import re
+from datetime import datetime
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
 
 
 class ErrorResponse(BaseModel):
@@ -47,20 +48,20 @@ class ProjectBase(BaseModel):
 
 
 class ProjectCreate(ProjectBase):
-    description: Optional[str] = Field(None, max_length=1000)
-    business_name: Optional[str] = Field(None, max_length=255)
-    business_segment: Optional[str] = Field(None, max_length=100)
+    description: str = Field(..., max_length=1000)
+    business_name: str = Field(..., max_length=255)
+    business_segment: str = Field(..., max_length=100)
 
 
 class ProjectUpdate(BaseModel):
-    name: Optional[str] = Field(None, min_length=1, max_length=255)
-    description: Optional[str] = Field(None, max_length=1000)
-    business_name: Optional[str] = Field(None, max_length=255)
-    business_segment: Optional[str] = Field(None, max_length=100)
+    name: str | None = Field(None, min_length=1, max_length=255)
+    description: str | None = Field(None, max_length=1000)
+    business_name: str | None = Field(None, max_length=255)
+    business_segment: str | None = Field(None, max_length=100)
 
     @field_validator('name')
     @classmethod
-    def validate_name(cls, v: Optional[str]) -> Optional[str]:
+    def validate_name(cls, v: str | None) -> str | None:
         if v is not None and not re.match(r'^[a-zA-Z0-9\s\-_.]+$', v):
             raise ValueError('Nome deve conter apenas letras, números, espaços, hífen, underline ou ponto')
         return v
@@ -68,23 +69,22 @@ class ProjectUpdate(BaseModel):
 
 class ProjectResponse(ProjectBase):
     id: int
-    description: Optional[str] = None
-    business_name: Optional[str] = None
-    business_segment: Optional[str] = None
+    description: str | None = None
+    business_name: str | None = None
+    business_segment: str | None = None
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class BrandBase(BaseModel):
-    business_name: Optional[str] = Field(None, max_length=255)
-    segment: Optional[str] = Field(None, max_length=100)
-    tone_of_voice: Optional[str] = Field(None, max_length=50)
-    palette: Optional[Dict[str, str]] = None
-    typography: Optional[Dict[str, str]] = None
-    logo_svg: Optional[str] = None
+    business_name: str | None = Field(None, max_length=255)
+    segment: str | None = Field(None, max_length=100)
+    tone_of_voice: str | None = Field(None, max_length=50)
+    palette: dict[str, str] | None = None
+    typography: dict[str, str] | None = None
+    logo_svg: str | None = None
 
 
 class BrandCreate(BrandBase):
@@ -92,12 +92,12 @@ class BrandCreate(BrandBase):
 
 
 class BrandUpdate(BaseModel):
-    business_name: Optional[str] = Field(None, max_length=255)
-    segment: Optional[str] = Field(None, max_length=100)
-    tone_of_voice: Optional[str] = Field(None, max_length=50)
-    palette: Optional[Dict[str, str]] = None
-    typography: Optional[Dict[str, str]] = None
-    logo_svg: Optional[str] = None
+    business_name: str | None = Field(None, max_length=255)
+    segment: str | None = Field(None, max_length=100)
+    tone_of_voice: str | None = Field(None, max_length=50)
+    palette: dict[str, str] | None = None
+    typography: dict[str, str] | None = None
+    logo_svg: str | None = None
 
 
 class BrandResponse(BrandBase):
@@ -105,13 +105,12 @@ class BrandResponse(BrandBase):
     project_id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class DesignSystemBase(BaseModel):
-    tokens: Optional[Dict[str, Any]] = None
-    components: Optional[Dict[str, Any]] = None
+    tokens: dict[str, Any] | None = None
+    components: dict[str, Any] | None = None
 
 
 class DesignSystemCreate(DesignSystemBase):
@@ -119,8 +118,8 @@ class DesignSystemCreate(DesignSystemBase):
 
 
 class DesignSystemUpdate(BaseModel):
-    tokens: Optional[Dict[str, Any]] = None
-    components: Optional[Dict[str, Any]] = None
+    tokens: dict[str, Any] | None = None
+    components: dict[str, Any] | None = None
 
 
 class DesignSystemResponse(DesignSystemBase):
@@ -128,33 +127,32 @@ class DesignSystemResponse(DesignSystemBase):
     brand_id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # IA Schemas
 class BrandGenerateRequest(BaseModel):
     project_id: int = Field(..., gt=0)
     business_name: str = Field(..., min_length=1, max_length=255)
-    segment: Optional[str] = Field(None, max_length=100)
-    tone_of_voice: Optional[str] = Field(None, max_length=50)
+    segment: str | None = Field(None, max_length=100)
+    tone_of_voice: str | None = Field(None, max_length=50)
 
 
 class BrandGenerateResponse(BaseModel):
     brand_name: str
-    tagline: Optional[str] = None
-    palette: Dict[str, str]
-    typography: Dict[str, str]
+    tagline: str | None = None
+    palette: dict[str, str]
+    typography: dict[str, str]
     explanation: str
 
 
 class PaletteValidateRequest(BaseModel):
-    palette: Dict[str, str]
+    palette: dict[str, str]
 
 
 class PaletteValidateResponse(BaseModel):
     colors: list
-    accessibility: Dict[str, bool]
+    accessibility: dict[str, bool]
 
 
 class ExportTokensRequest(BaseModel):
@@ -162,7 +160,7 @@ class ExportTokensRequest(BaseModel):
 
 
 class ExportTokensResponse(BaseModel):
-    json: Dict[str, Any]
+    data: dict[str, Any]
     css_variables: str
     tailwind_config: str
 
@@ -180,28 +178,27 @@ class RAGSearchResponse(BaseModel):
 # Advanced Features Schemas
 class PaletteCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
-    colors: Dict[str, str] = Field(..., min_length=6)
-    description: Optional[str] = Field(None, max_length=500)
-    author: Optional[str] = Field(None, max_length=100)
-    category: Optional[str] = Field("uncategorized", max_length=50)
-    tags: Optional[List[str]] = Field(default_factory=list)
+    colors: dict[str, str] = Field(..., min_length=6)
+    description: str | None = Field(None, max_length=500)
+    author: str | None = Field(None, max_length=100)
+    category: str | None = Field("uncategorized", max_length=50)
+    tags: list[str] | None = Field(default_factory=list)
 
 
 class PaletteResponse(BaseModel):
     id: int
     name: str
-    colors: Dict[str, str]
-    description: Optional[str] = None
-    author: Optional[str] = None
+    colors: dict[str, str]
+    description: str | None = None
+    author: str | None = None
     category: str
-    tags: List[str]
+    tags: list[str]
     rating: float
     votes: int
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CommentCreate(BaseModel):
@@ -217,8 +214,7 @@ class CommentResponse(BaseModel):
     content: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class FontPairingCreate(BaseModel):
@@ -226,10 +222,10 @@ class FontPairingCreate(BaseModel):
     heading_font: str = Field(..., min_length=1, max_length=100)
     body_font: str = Field(..., min_length=1, max_length=100)
     mono_font: str = Field(..., min_length=1, max_length=100)
-    description: Optional[str] = Field(None, max_length=500)
-    author: Optional[str] = Field(None, max_length=100)
-    style: Optional[str] = Field("modern", max_length=50)
-    tags: Optional[List[str]] = Field(default_factory=list)
+    description: str | None = Field(None, max_length=500)
+    author: str | None = Field(None, max_length=100)
+    style: str | None = Field("modern", max_length=50)
+    tags: list[str] | None = Field(default_factory=list)
 
 
 class FontPairingResponse(BaseModel):
@@ -238,17 +234,16 @@ class FontPairingResponse(BaseModel):
     heading_font: str
     body_font: str
     mono_font: str
-    description: Optional[str] = None
-    author: Optional[str] = None
+    description: str | None = None
+    author: str | None = None
     style: str
-    tags: List[str]
+    tags: list[str]
     rating: float
     votes: int
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TemplateResponse(BaseModel):
@@ -256,13 +251,12 @@ class TemplateResponse(BaseModel):
     name: str
     description: str
     segment: str
-    palette: Dict[str, str]
-    typography: Dict[str, str]
-    preview_image: Optional[str] = None
+    palette: dict[str, str]
+    typography: dict[str, str]
+    preview_image: str | None = None
     author: str
     is_premium: bool
-    tags: List[str]
+    tags: list[str]
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

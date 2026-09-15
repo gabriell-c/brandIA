@@ -1,23 +1,20 @@
 """
 Backup service - Automated database backups with scheduling
 """
-import os
-import json
 import logging
+import os
+import sqlite3
+import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, Any, Optional, List
-import subprocess
-import sqlite3
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
 class BackupService:
     """Service for automated database backups."""
-    
+
     def __init__(
         self,
         backup_dir: str = "./backups",
@@ -28,17 +25,17 @@ class BackupService:
         self.retention_days = retention_days
         self.schedule_cron = schedule_cron
         self.backup_dir.mkdir(parents=True, exist_ok=True)
-    
+
     async def create_backup(
         self,
         db_path: str = None,
         backup_name: str = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create a database backup."""
         timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
         backup_filename = backup_name or f"backup_{timestamp}.sqlite"
         backup_path = self.backup_dir / backup_filename
-        
+
         try:
             # Create backup
             if db_path:
@@ -55,9 +52,9 @@ class BackupService:
                 )
                 if result.returncode == 0:
                     backup_path.write_text(result.stdout)
-            
+
             backup_size = backup_path.stat().st_size if backup_path.exists() else 0
-            
+
             return {
                 "success": True,
                 "backup_path": str(backup_path),
@@ -66,7 +63,7 @@ class BackupService:
                 "size_bytes": backup_size,
                 "size_mb": round(backup_size / 1024 / 1024, 2)
             }
-            
+
         except Exception as e:
             logger.error(f"Backup failed: {e}")
             return {
@@ -74,24 +71,24 @@ class BackupService:
                 "error": str(e),
                 "timestamp": timestamp
             }
-    
+
     def cleanup_old_backups(self) -> int:
         """Remove backups older than retention period."""
         cutoff_date = datetime.utcnow() - timedelta(days=self.retention_days)
         removed_count = 0
-        
+
         for backup_file in self.backup_dir.glob("backup_*.sqlite"):
             if backup_file.stat().st_mtime < cutoff_date.timestamp():
                 backup_file.unlink()
                 removed_count += 1
                 logger.info(f"Removed old backup: {backup_file.name}")
-        
+
         return removed_count
-    
-    def list_backups(self, limit: int = 10) -> List[Dict[str, Any]]:
+
+    def list_backups(self, limit: int = 10) -> list[dict[str, Any]]:
         """List available backups."""
         backups = []
-        
+
         for backup_file in sorted(
             self.backup_dir.glob("backup_*.sqlite"),
             key=lambda x: x.stat().st_mtime,
@@ -106,20 +103,20 @@ class BackupService:
                     backup_file.stat().st_mtime
                 ).isoformat()
             })
-        
+
         return backups
-    
+
     def validate_backup(self, backup_path: str) -> bool:
         """Validate backup integrity."""
         try:
             backup_file = Path(backup_path)
             if not backup_file.exists():
                 return False
-            
+
             # Check file size
             if backup_file.stat().st_size == 0:
                 return False
-            
+
             # For SQLite, try to open the database
             if backup_path.endswith('.sqlite'):
                 conn = sqlite3.connect(backup_path)
@@ -128,14 +125,14 @@ class BackupService:
                 tables = cursor.fetchall()
                 conn.close()
                 return len(tables) > 0
-            
+
             return True
-            
+
         except Exception as e:
             logger.error(f"Backup validation failed: {e}")
             return False
-    
-    def get_backup_schedule(self) -> Dict[str, Any]:
+
+    def get_backup_schedule(self) -> dict[str, Any]:
         """Get backup schedule configuration."""
         return {
             "schedule_cron": self.schedule_cron,
@@ -144,7 +141,7 @@ class BackupService:
             "last_cleanup": None,  # Would be updated after cleanup
             "next_run": self._calculate_next_run()
         }
-    
+
     def _calculate_next_run(self) -> str:
         """Calculate next scheduled run time."""
         # Simplified - in production use a proper scheduler like APScheduler

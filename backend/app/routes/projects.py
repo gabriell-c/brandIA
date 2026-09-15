@@ -1,20 +1,19 @@
 """
 Project Routes - CRUD for projects
 """
+
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from typing import List
-from datetime import datetime
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models import Project, Brand
-from app.schemas import ProjectCreate, ProjectUpdate, ProjectResponse, BrandCreate, BrandResponse
+from app.models import Brand, Project
+from app.schemas import BrandResponse, ProjectCreate, ProjectResponse, ProjectUpdate
 
 router = APIRouter()
 
 
-@router.get("/", response_model=List[ProjectResponse])
+@router.get("/", response_model=list[ProjectResponse])
 async def list_projects(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)):
     """List all projects"""
     result = await db.execute(
@@ -24,7 +23,7 @@ async def list_projects(skip: int = 0, limit: int = 100, db: AsyncSession = Depe
     return projects
 
 
-@router.post("/", response_model=ProjectResponse)
+@router.post("/", response_model=ProjectResponse, status_code=201)
 async def create_project(project_data: ProjectCreate, db: AsyncSession = Depends(get_db)):
     """Create a new project"""
     project = Project(
@@ -56,7 +55,7 @@ async def update_project(project_id: int, project_data: ProjectUpdate, db: Async
     project = result.scalar_one_or_none()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    
+
     if project_data.name is not None:
         project.name = project_data.name
     if project_data.description is not None:
@@ -65,7 +64,7 @@ async def update_project(project_id: int, project_data: ProjectUpdate, db: Async
         project.business_name = project_data.business_name
     if project_data.business_segment is not None:
         project.business_segment = project_data.business_segment
-    
+
     await db.commit()
     await db.refresh(project)
     return project
@@ -78,7 +77,7 @@ async def delete_project(project_id: int, db: AsyncSession = Depends(get_db)):
     project = result.scalar_one_or_none()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    
+
     await db.delete(project)
     await db.commit()
     return {"message": "Project deleted"}

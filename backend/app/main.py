@@ -1,14 +1,23 @@
-from fastapi import FastAPI
+import logging
+import time
+from contextlib import asynccontextmanager
+from logging.handlers import RotatingFileHandler
+
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi import Request, HTTPException
-import json
-import logging
-from logging.handlers import RotatingFileHandler
-import time
 
-from app.routes import projects, brand, ai_config, advanced, community, deployment, api_keys, integrations, integrations
-from app.database import engine, Base, init_db
+from app.database import init_db
+from app.routes import (
+    advanced,
+    ai_config,
+    api_keys,
+    brand,
+    community,
+    deployment,
+    integrations,
+    projects,
+)
 
 # Configure structured logging
 logging.basicConfig(
@@ -47,7 +56,7 @@ async def rate_limit_middleware(request: Request, call_next):
     """Rate limiting middleware - 100 requests per minute per IP"""
     client_ip = request.client.host
     current_time = time.time()
-    
+
     # Clean old entries
     if client_ip in _rate_limit_store:
         _rate_limit_store[client_ip] = [
@@ -55,17 +64,17 @@ async def rate_limit_middleware(request: Request, call_next):
         ]
     else:
         _rate_limit_store[client_ip] = []
-    
+
     # Check rate limit
     if len(_rate_limit_store[client_ip]) >= RATE_LIMIT:
         return JSONResponse(
             status_code=429,
             content={"detail": "Rate limit exceeded. Try again in a minute."}
         )
-    
+
     # Add current request timestamp
     _rate_limit_store[client_ip].append(current_time)
-    
+
     return await call_next(request)
 
 
@@ -74,14 +83,14 @@ async def rate_limit_middleware(request: Request, call_next):
 async def log_requests_middleware(request: Request, call_next):
     """Log all requests with timing"""
     start_time = time.time()
-    
+
     response = await call_next(request)
-    
+
     process_time = time.time() - start_time
     logger.info(
         f"{request.method} {request.url.path} - Status: {response.status_code} - Time: {process_time:.3f}s"
     )
-    
+
     return response
 
 
@@ -113,6 +122,16 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 
+# Lifespan events (replaces deprecated on_event)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize database on startup and clean up on shutdown"""
+    await init_db()
+    logger.info("Application started")
+    yield
+    logger.info("Application shutting down")
+
+
 # Routers
 app.include_router(projects.router, prefix="/api/v1/projects", tags=["projects"])
 app.include_router(brand.router, prefix="/api/v1/brand", tags=["brand"])
@@ -123,12 +142,8 @@ app.include_router(deployment.router, prefix="/api/v1/deployment", tags=["deploy
 app.include_router(api_keys.router, prefix="/api/v1/api-keys", tags=["api-keys"])
 app.include_router(integrations.router, prefix="/api/v1/integrations", tags=["integrations"])
 
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize database on startup"""
-    await init_db()
-    logger.info("Application started")
+# Register lifespan
+app.router.lifespan_context = lifespan
 
 
 @app.get("/")

@@ -3,11 +3,10 @@ Branding agent - generates complete branding proposals using AI.
 """
 import json
 import logging
-import asyncio
-from typing import Dict, Any, Optional
-from datetime import datetime
-from pydantic import BaseModel, Field
-from app.ai_client import AIConfig, AIChatResponse, chat_completion
+
+from pydantic import BaseModel
+
+from app.ai_client import AIConfig, chat_completion
 
 logger = logging.getLogger(__name__)
 
@@ -55,24 +54,24 @@ IMPORTANT: Always return valid JSON only, no additional text."""
 class BrandingRequest(BaseModel):
     project_id: int
     business_name: str
-    segment: Optional[str] = None
-    tone_of_voice: Optional[str] = None
+    segment: str | None = None
+    tone_of_voice: str | None = None
 
 class BrandingResponse(BaseModel):
     brand_name: str
-    tagline: Optional[str] = None
-    palette: Dict[str, str]
-    typography: Dict[str, str]
+    tagline: str | None = None
+    palette: dict[str, str]
+    typography: dict[str, str]
     explanation: str
 
 class BrandingAgent:
     """AI agent for generating complete branding proposals."""
-    
+
     def __init__(self, ai_config: AIConfig, rag_context: str = ""):
         self.ai_config = ai_config
         self.rag_context = rag_context
         self.system_prompt = BRANDING_SYSTEM_PROMPT
-    
+
     async def generate(self, request: BrandingRequest) -> BrandingResponse:
         """Generate complete branding proposal."""
         # Build context from request
@@ -81,10 +80,10 @@ class BrandingAgent:
             context += f"\nSegment: {request.segment}"
         if request.tone_of_voice:
             context += f"\nTone of Voice: {request.tone_of_voice}"
-        
+
         # Add RAG context if available
         rag_context_str = f"\n\nRelevant design rules:\n{self.rag_context}" if self.rag_context else ""
-        
+
         user_message = f"""Based on the following business information, create a complete brand identity:
 
 {context}{rag_context_str}
@@ -115,23 +114,23 @@ Return ONLY valid JSON in this format:
   }},
   "explanation": "detailed explanation"
 }}"""
-        
+
         messages = [
             {"role": "system", "content": self.system_prompt},
             {"role": "user", "content": user_message}
         ]
-        
+
         # Get AI response
         response = await chat_completion(
             messages=messages,
             config=self.ai_config,
             response_format={"type": "json_object"}
         )
-        
+
         if not response.success:
             logger.error(f"Branding generation failed: {response.error}")
             raise Exception(f"AI generation failed: {response.error}")
-        
+
         # Parse and validate response
         try:
             data = json.loads(response.message)
@@ -144,4 +143,4 @@ Return ONLY valid JSON in this format:
             )
         except (json.JSONDecodeError, KeyError) as e:
             logger.error(f"Invalid response format: {e}")
-            raise Exception(f"Invalid AI response format: {e}")
+            raise Exception(f"Invalid AI response format: {e}") from e

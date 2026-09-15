@@ -4,9 +4,11 @@ Palette agent - generates accessible color palettes using AI.
 import json
 import logging
 import re
-from typing import Dict, Any, Optional, List
-from pydantic import BaseModel, Field
-from app.ai_client import AIConfig, AIChatResponse, chat_completion
+from typing import Any
+
+from pydantic import BaseModel
+
+from app.ai_client import AIConfig, chat_completion
 
 logger = logging.getLogger(__name__)
 
@@ -31,23 +33,23 @@ Provide hex codes that are visually balanced and harmonious."""
 
 class PaletteRequest(BaseModel):
     business_context: str
-    preferred_style: Optional[str] = None  # e.g., "modern", "classic", "bold"
-    exclude_colors: Optional[List[str]] = None  # e.g., ["red"]
+    preferred_style: str | None = None  # e.g., "modern", "classic", "bold"
+    exclude_colors: list[str] | None = None  # e.g., ["red"]
 
 class PaletteResponse(BaseModel):
-    palette: Dict[str, str]
-    accessibility: Dict[str, Dict[str, Any]]
-    suggestions: List[str]
+    palette: dict[str, str]
+    accessibility: dict[str, dict[str, Any]]
+    suggestions: list[str]
     explanation: str
 
 class PaletteAgent:
     """AI agent for generating accessible color palettes."""
-    
+
     def __init__(self, ai_config: AIConfig, rag_context: str = ""):
         self.ai_config = ai_config
         self.rag_context = rag_context
         self.system_prompt = PALETTE_SYSTEM_PROMPT
-    
+
     async def generate(self, request: PaletteRequest) -> PaletteResponse:
         """Generate a complete color palette."""
         context = f"Business context: {request.business_context}"
@@ -55,10 +57,10 @@ class PaletteAgent:
             context += f"\nPreferred style: {request.preferred_style}"
         if request.exclude_colors:
             context += f"\nExclude colors: {', '.join(request.exclude_colors)}"
-        
+
         # Add RAG context if available
         rag_context_str = f"\n\nDesign rules to follow:\n{self.rag_context}" if self.rag_context else ""
-        
+
         user_message = f"""Generate a complete color palette based on:
 
 {context}{rag_context_str}
@@ -83,27 +85,27 @@ Return ONLY valid JSON in this format:
   "suggestions": ["color usage tips"],
   "explanation": "why these colors were chosen"
 }}"""
-        
+
         messages = [
             {"role": "system", "content": self.system_prompt},
             {"role": "user", "content": user_message}
         ]
-        
+
         response = await chat_completion(
             messages=messages,
             config=self.ai_config,
             response_format={"type": "json_object"}
         )
-        
+
         if not response.success:
             raise Exception(f"Palette generation failed: {response.error}")
-        
+
         try:
             data = json.loads(response.message)
-            
+
             # Validate color format
             self._validate_colors(data["palette"])
-            
+
             return PaletteResponse(
                 palette=data["palette"],
                 accessibility=data.get("accessibility", {}),
@@ -112,16 +114,16 @@ Return ONLY valid JSON in this format:
             )
         except (json.JSONDecodeError, KeyError) as e:
             logger.error(f"Invalid palette response: {e}")
-            raise Exception(f"Invalid AI response format: {e}")
-    
-    def _validate_colors(self, palette: Dict[str, str]):
+            raise Exception(f"Invalid AI response format: {e}") from e
+
+    def _validate_colors(self, palette: dict[str, str]):
         """Validate hex color format."""
         hex_pattern = re.compile(r'^#[0-9A-Fa-f]{6}$')
         for color_name, hex_value in palette.items():
             if not hex_pattern.match(hex_value):
                 raise ValueError(f"Invalid color format for {color_name}: {hex_value}")
-    
-    async def validate(self, palette: Dict[str, str]) -> Dict[str, Any]:
+
+    async def validate(self, palette: dict[str, str]) -> dict[str, Any]:
         """Validate palette against WCAG standards."""
         # Simple validation - check hex format
         for color_name, hex_value in palette.items():
@@ -130,7 +132,7 @@ Return ONLY valid JSON in this format:
                     "colors": list(palette.values()),
                     "accessibility": {"valid": False, "error": f"Invalid color format: {color_name}"}
                 }
-        
+
         return {
             "colors": list(palette.values()),
             "accessibility": {"valid": True}

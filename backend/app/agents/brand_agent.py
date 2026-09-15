@@ -6,10 +6,10 @@ from app.schemas import AIConfigBase
 
 class BrandAgent:
     """Agent responsible for generating brand concept"""
-    
+
     def __init__(self, ai_config: AIConfigBase):
         self.ai_config = ai_config
-    
+
     async def generate(self, business_info: dict) -> dict:
         """
         Generate brand concept based on business info

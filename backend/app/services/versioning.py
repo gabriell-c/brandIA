@@ -2,17 +2,16 @@
 Versioning service - Multiple versions, diff, rollback for branding projects
 """
 import logging
-from typing import Dict, Any, Optional, List
-from datetime import datetime
 import uuid
-import json
+from datetime import datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
 class DesignVersion:
     """Represents a version of a design/project."""
-    
+
     def __init__(
         self,
         id: str,
@@ -20,8 +19,8 @@ class DesignVersion:
         brand_id: str,
         name: str,
         description: str,
-        palette: Dict[str, str],
-        typography: Dict[str, str],
+        palette: dict[str, str],
+        typography: dict[str, str],
         logo_svg: str = None,
         notes: str = None,
         created_by: str = None,
@@ -39,8 +38,8 @@ class DesignVersion:
         self.created_by = created_by
         self.created_at = created_at or datetime.utcnow()
         self.is_current = False
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "project_id": self.project_id,
@@ -55,15 +54,15 @@ class DesignVersion:
             "created_at": self.created_at.isoformat(),
             "is_current": self.is_current
         }
-    
-    def get_diff(self, other: 'DesignVersion') -> Dict[str, Any]:
+
+    def get_diff(self, other: 'DesignVersion') -> dict[str, Any]:
         """Calculate differences between this version and another."""
         diff = {
             "palette_changes": [],
             "typography_changes": [],
             "logo_changed": False
         }
-        
+
         # Compare palettes
         for color_name, color_value in self.palette.items():
             other_value = other.palette.get(color_name)
@@ -73,7 +72,7 @@ class DesignVersion:
                     "old_value": color_value,
                     "new_value": other_value
                 })
-        
+
         # Compare typography
         for font_type, font_value in self.typography.items():
             other_value = other.typography.get(font_type)
@@ -83,28 +82,28 @@ class DesignVersion:
                     "old_value": font_value,
                     "new_value": other_value
                 })
-        
+
         # Compare logos
         if self.logo_svg != other.logo_svg:
             diff["logo_changed"] = True
-        
+
         return diff
 
 
 class VersionService:
     """Service for managing design versions."""
-    
+
     def __init__(self):
-        self.versions: Dict[str, DesignVersion] = {}
-        self.project_versions: Dict[str, List[str]] = {}  # project_id -> [version_ids]
-    
+        self.versions: dict[str, DesignVersion] = {}
+        self.project_versions: dict[str, list[str]] = {}  # project_id -> [version_ids]
+
     def create_version(
         self,
         project_id: str,
         brand_id: str,
         name: str,
-        palette: Dict[str, str],
-        typography: Dict[str, str],
+        palette: dict[str, str],
+        typography: dict[str, str],
         logo_svg: str = None,
         notes: str = None,
         created_by: str = None
@@ -115,7 +114,7 @@ class VersionService:
             version = self.versions.get(vid)
             if version and version.is_current:
                 version.is_current = False
-        
+
         # Create new version
         version_id = str(uuid.uuid4())[:8]
         version = DesignVersion(
@@ -131,47 +130,47 @@ class VersionService:
             created_by=created_by
         )
         version.is_current = True
-        
+
         self.versions[version_id] = version
         self.project_versions.setdefault(project_id, []).append(version_id)
-        
+
         logger.info(f"Created version {version_id} for project {project_id}")
         return version
-    
-    def get_version(self, version_id: str) -> Optional[DesignVersion]:
+
+    def get_version(self, version_id: str) -> DesignVersion | None:
         """Get a specific version."""
         return self.versions.get(version_id)
-    
+
     def get_project_versions(
         self,
         project_id: str,
         limit: int = 50
-    ) -> List[DesignVersion]:
+    ) -> list[DesignVersion]:
         """Get all versions for a project, sorted by date."""
         version_ids = self.project_versions.get(project_id, [])
         versions = [self.versions[vid] for vid in version_ids if self.versions.get(vid)]
         return sorted(versions, key=lambda x: x.created_at, reverse=True)[:limit]
-    
-    def get_current_version(self, project_id: str) -> Optional[DesignVersion]:
+
+    def get_current_version(self, project_id: str) -> DesignVersion | None:
         """Get the current active version."""
         for vid in self.project_versions.get(project_id, []):
             version = self.versions.get(vid)
             if version and version.is_current:
                 return version
         return None
-    
+
     def create_diff(
         self,
         version1_id: str,
         version2_id: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Create a diff between two versions."""
         version1 = self.versions.get(version1_id)
         version2 = self.versions.get(version2_id)
-        
+
         if not version1 or not version2:
             return None
-        
+
         diff = version1.get_diff(version2)
         diff["version1"] = version1.to_dict()
         diff["version2"] = version2.to_dict()
@@ -179,24 +178,24 @@ class VersionService:
         diff["version2_name"] = version2.name
         diff["version1_created_at"] = version1.created_at.isoformat()
         diff["version2_created_at"] = version2.created_at.isoformat()
-        
+
         return diff
-    
+
     def rollback_to_version(
         self,
         project_id: str,
         version_id: str,
         new_name: str = None
-    ) -> Optional[DesignVersion]:
+    ) -> DesignVersion | None:
         """Rollback to a previous version by creating a new version."""
         target_version = self.versions.get(version_id)
         if not target_version:
             return None
-        
+
         # Create new version with target version's data
         current_version = self.get_current_version(project_id)
         name = new_name or f"Rollback to {target_version.name}"
-        
+
         return self.create_version(
             project_id=project_id,
             brand_id=target_version.brand_id,
@@ -207,25 +206,25 @@ class VersionService:
             notes=f"Rolled back from {current_version.name} to {target_version.name}" if current_version else None,
             created_by=target_version.created_by
         )
-    
+
     def delete_version(self, version_id: str) -> bool:
         """Delete a version (not the current one)."""
         version = self.versions.get(version_id)
         if not version or version.is_current:
             return False
-        
+
         # Remove from project versions
         if version.project_id in self.project_versions:
             self.project_versions[version.project_id].remove(version_id)
-        
+
         del self.versions[version_id]
         return True
-    
-    def get_version_history(self, project_id: str) -> List[Dict[str, Any]]:
+
+    def get_version_history(self, project_id: str) -> list[dict[str, Any]]:
         """Get version history with summary info."""
         versions = self.get_project_versions(project_id)
         history = []
-        
+
         for i, version in enumerate(versions):
             history.append({
                 "id": version.id,
@@ -240,9 +239,9 @@ class VersionService:
                     "has_logo": version.logo_svg is not None
                 }
             })
-        
+
         return history
-    
+
     def get_changes_count(self, project_id: str) -> int:
         """Get the number of changes made to a project."""
         return len(self.project_versions.get(project_id, []))
