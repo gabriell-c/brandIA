@@ -7,7 +7,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 import time
 
-from app.routes import projects, brand, ai_config, advanced, community, deployment
+from app.routes import projects, brand, ai_config, advanced, community, deployment, api_keys
 from app.database import engine, Base, init_db
 
 # Configure structured logging
@@ -120,6 +120,7 @@ app.include_router(ai_config.router, prefix="/api/v1/ai-config", tags=["ai-confi
 app.include_router(advanced.router, prefix="/api/v1/advanced", tags=["advanced"])
 app.include_router(community.router, prefix="/api/v1/community", tags=["community"])
 app.include_router(deployment.router, prefix="/api/v1/deployment", tags=["deployment"])
+app.include_router(api_keys.router, prefix="/api/v1/api-keys", tags=["api-keys"])
 
 
 @app.on_event("startup")

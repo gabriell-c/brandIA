@@ -12,6 +12,7 @@ from app.services.community import CommunityService, get_community
 from app.services.versioning import VersionService, get_versioning_service
 from app.services.backup import BackupService, get_backup_service
 from app.services.monitoring import MonitoringService, get_monitoring_service
+from app.services.api_keys import APIKeysService, get_api_keys_service
 
 __all__ = [
     "VectorizationService",
@@ -35,5 +36,7 @@ __all__ = [
     "BackupService",
     "get_backup_service",
     "MonitoringService",
-    "get_monitoring_service"
+    "get_monitoring_service",
+    "APIKeysService",
+    "get_api_keys_service"
 ]

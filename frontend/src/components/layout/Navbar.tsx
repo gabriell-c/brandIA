@@ -14,6 +14,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeRoute = '/' }) => {
     { path: '/brand', label: '生成品牌' },
     { path: '/design-system', label: '设计系统' },
     { path: '/export', label: '导出' },
+    { path: '/api-dashboard', label: 'API Dashboard' },
   ];
 
   return (
