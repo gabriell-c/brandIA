@@ -1,0 +1,27 @@
+{
+  "name": "omni-design-tokens",
+  "id": "omni-design-tokens-plugin",
+  "version": "1.0.0",
+  "main": "src/main.ts",
+  "editorApiVersion": "^2.0.0",
+  "manifestVersion": "2.1.0",
+  "name.en": "Omni Design Tokens",
+  "name.zh": "Omni 设计令牌",
+  "description": "Import and export design tokens between Omni Design System and Figma",
+  "creators": [
+    {
+      "name": "OmniRoute",
+      "url": "https://omni.ligiaplus.com.br"
+    }
+  ],
+  "supportsFullWidth": true,
+  "networkAccess": {
+    "allowedDomains": ["*"]
+  },
+  "menu": [
+    {
+      "commands": ["import-tokens", "export-tokens", "sync-tokens"],
+      "menus": ["file"]
+    }
+  ]
+}

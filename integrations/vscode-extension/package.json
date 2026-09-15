@@ -1,0 +1,58 @@
+{
+  "name": "omni-design-tokens",
+  "displayName": "Omni Design Tokens",
+  "description": "Import and export design tokens from Omni Design System",
+  "version": "1.0.0",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:css",
+    "onLanguage:scss",
+    "onLanguage:javascript",
+    "onLanguage:typescript",
+    "onLanguage:typescriptreact",
+    "onLanguage:javascriptreact"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "omniDesignTokens.importTokens",
+        "title": "Omni: Import Design Tokens"
+      },
+      {
+        "command": "omniDesignTokens.exportTokens",
+        "title": "Omni: Export Design Tokens"
+      },
+      {
+        "command": "omniDesignTokens.showColorPreview",
+        "title": "Omni: Show Color Preview"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "omniDesignTokens.importTokens",
+        "key": "ctrl+shift+i",
+        "when": "editorFocus"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "css",
+        "path": "./snippets/css.json"
+      },
+      {
+        "language": "scss",
+        "path": "./snippets/scss.json"
+      },
+      {
+        "language": "typescript",
+        "path": "./snippets/typescript.json"
+      }
+    ]
+  }
+}
