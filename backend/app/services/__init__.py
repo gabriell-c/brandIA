@@ -10,6 +10,8 @@ from app.services.template_exporter import TemplateExporter, get_template_export
 from app.services.marketplace import MarketplaceService, get_marketplace
 from app.services.community import CommunityService, get_community
 from app.services.versioning import VersionService, get_versioning_service
+from app.services.backup import BackupService, get_backup_service
+from app.services.monitoring import MonitoringService, get_monitoring_service
 
 __all__ = [
     "VectorizationService",
@@ -29,5 +31,9 @@ __all__ = [
     "CommunityService",
     "get_community",
     "VersionService",
-    "get_versioning_service"
+    "get_versioning_service",
+    "BackupService",
+    "get_backup_service",
+    "MonitoringService",
+    "get_monitoring_service"
 ]
